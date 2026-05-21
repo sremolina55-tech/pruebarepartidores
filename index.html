@@ -169,7 +169,15 @@ html,body{min-height:100vh;background:var(--cream);font-family:'DM Sans',sans-se
 .s-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;}
 .btn-nueva{width:100%;background:#fff;border:2px solid var(--border);color:var(--text);border-radius:14px;padding:16px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:12px;-webkit-appearance:none;}
 
-.loading{display:none;position:fixed;inset:0;background:rgba(255,245,248,0.92);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.consig-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.consig-item:last-child{border-bottom:none;}
+.consig-check{width:24px;height:24px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+.consig-check.checked{background:var(--blue);border-color:var(--blue);color:#fff;}
+.consig-info{flex:1;}
+.consig-consec{font-size:13px;font-weight:600;color:var(--rosa);}
+.consig-cliente{font-size:12px;color:var(--text2);}
+.consig-monto{font-size:14px;font-weight:700;color:var(--blue);}
+background:rgba(255,245,248,0.92);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
 .loading.show{display:flex;}
 .spinner{width:42px;height:42px;border:3px solid var(--border);border-top-color:var(--rosa);border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -222,6 +230,64 @@ html,body{min-height:100vh;background:var(--cream);font-family:'DM Sans',sans-se
       <div class="section-label">Ya registradas hoy</div>
       <div id="facturas-listas-list"></div>
     </div>
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+      <button class="btn-continuar" style="background:var(--blue);font-size:15px" onclick="irAConsignacion()">&#128181; Registrar consignacion del dia</button>
+      <button class="btn-continuar" style="background:#fff;color:var(--blue);border:2px solid var(--blue);font-size:15px" onclick="irAConsignacionesPendientes()">&#9200; Consignaciones pendientes</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 4B: CONSIGNACIONES PENDIENTES (dias anteriores) -->
+  <div class="screen" id="screen-consig-pendientes">
+    <button class="back-btn" onclick="volverFacturas()"><span>&#8592;</span> Mis facturas</button>
+    <div class="card" style="background:var(--amber-dim);border-color:rgba(200,120,32,0.25);margin-bottom:14px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--amber);margin-bottom:4px;font-weight:600">Consignaciones pendientes</div>
+      <div style="font-size:13px;color:var(--text2)">Facturas de dias anteriores con efectivo que aun no han sido consignadas</div>
+    </div>
+    <div id="pend-list"></div>
+  </div>
+
+  <!-- PANTALLA 4: CONSIGNACION -->
+  <div class="screen" id="screen-consignacion">
+    <button class="back-btn" onclick="volverFacturas()"><span>&#8592;</span> Mis facturas</button>
+    <div class="card" style="background:var(--blue-dim);border-color:rgba(72,120,200,0.25);margin-bottom:14px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--blue);margin-bottom:4px;font-weight:600">Registrar consignacion</div>
+      <div style="font-size:13px;color:var(--text2)">Selecciona las facturas que cubre este baucher de consignacion</div>
+    </div>
+    <div class="card" id="consig-facturas-list"></div>
+    <div class="card" style="margin-top:14px">
+      <div class="sec-title">Resumen</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;color:var(--text2)">Facturas seleccionadas</span>
+        <span style="font-size:16px;font-weight:700" id="consig-count">0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--blue-dim);border-radius:10px;margin-bottom:14px">
+        <span style="font-size:13px;color:var(--blue)">Total efectivo esperado</span>
+        <span style="font-size:18px;font-weight:700;color:var(--blue)" id="consig-total">$0</span>
+      </div>
+      <div class="sec-title">Foto del baucher <span style="color:var(--red)">*</span></div>
+      <div class="photo-zone" id="photo-consig-zone">
+        <input type="file" id="photo-consig-file" accept="image/*" capture="environment" onchange="previewImg(this,'photo-consig-preview','photo-consig-zone')">
+        <div class="pp"><div class="pp-icon">&#128247;</div><div class="pp-txt">Foto del baucher Redeban</div><div class="pp-sub">Obligatorio</div></div>
+        <img id="photo-consig-preview">
+      </div>
+      <div style="margin-top:14px">
+        <label class="label">Observaciones (opcional)</label>
+        <input class="input" id="consig-obs" type="text" placeholder="Ej: Consignacion tarde por trafico">
+      </div>
+    </div>
+    <div id="consig-aviso-diff" style="display:none;background:var(--amber-dim);border:1.5px solid rgba(200,120,32,0.3);border-radius:12px;padding:14px;margin-top:10px">
+      <div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:4px">&#9888; Diferencia detectada</div>
+      <div style="font-size:13px;color:var(--text2)" id="consig-aviso-txt"></div>
+    </div>
+    <button class="btn-confirm" style="margin-top:14px;background:var(--blue)" onclick="confirmarConsignacion()">Confirmar consignacion</button>
+    <div class="success-screen" id="consig-success">
+      <div class="s-icon">&#9989;</div>
+      <div class="s-title" style="color:var(--blue)">Consignacion registrada!</div>
+      <div class="s-box" style="background:var(--blue-dim);border:1px solid rgba(72,120,200,0.3)">
+        <div style="font-size:13px;color:var(--text2)" id="consig-success-txt"></div>
+      </div>
+      <button class="btn-nueva" onclick="volverFacturas()">Volver a mis facturas</button>
+    </div>
   </div>
 
   <!-- PANTALLA 3: FORMULARIO ENTREGA -->
@@ -232,7 +298,8 @@ html,body{min-height:100vh;background:var(--cream);font-family:'DM Sans',sans-se
       <div class="card" style="margin-bottom:14px;background:var(--rosa-dim);border-color:rgba(232,69,110,0.25);">
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--rosa);margin-bottom:4px;font-weight:600">Factura</div>
         <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600" id="form-consec"></div>
-        <div style="font-size:13px;color:var(--text2);margin-top:4px" id="form-cliente"></div>
+        <div style="font-size:14px;color:var(--text);margin-top:4px;font-weight:500" id="form-cliente"></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px" id="form-sucursal" style="display:none"></div>
         <div style="font-size:12px;color:var(--text3);margin-top:2px" id="form-kg-fac"></div>
       </div>
 
@@ -339,15 +406,15 @@ function sbUpload(path,file){var h={apikey:SUPA_KEY,Authorization:'Bearer '+SUPA
 
 var conductorSel=null, facturaSel=null, pagosActivos=new Set(), tipoEntrega=null;
 var todosRepartidores=[], todasFacturas=[], todasEntregas=[];
-var hoy=new Date().toISOString().split('T')[0];
+var hoy=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Bogota'})).toISOString().split('T')[0];
 
 // Cargar datos al inicio
 window.addEventListener('load',function(){
   showLoading('Cargando conductores...');
   Promise.all([
     sbGet('repartidores','select=id,nombre&order=nombre'),
-    sbGet('facturas','select=id,consecutivo,fecha,estado,kg_facturados,repartidor_id,clientes(nombre)&fecha=eq.'+new Date().toISOString().split('T')[0]+'&order=consecutivo&limit=2000'),
-    sbGet('entregas','select=id,factura_id,kg_recibidos,metodo_pago,registrado_en&limit=5000')
+    sbGet('facturas','select=id,consecutivo,fecha,estado,kg_facturados,repartidor_id,sucursal,clientes(nombre)&fecha=eq.'+new Date().toISOString().split('T')[0]+'&order=consecutivo&limit=2000'),
+    sbGet('entregas','select=id,factura_id,kg_recibidos,metodo_pago,monto_efectivo,registrado_en&limit=5000')
   ]).then(function(results){
     todosRepartidores=(results[0]||[]).filter(function(r){
       // Solo mostrar repartidores que tienen facturas hoy
@@ -447,6 +514,7 @@ function renderFacturasDelDia(){
       html+='<div class="factura-item pendiente" data-fid="'+f.id+'" onclick="abrirFacturaByEl(this)">';
       html+='<div class="fi-top"><span class="fi-consec">#'+f.consecutivo+'</span><span class="fi-badge pendiente">Pendiente</span></div>';
       html+='<div class="fi-cliente">'+(f.clientes&&f.clientes.nombre?f.clientes.nombre:'-')+'</div>';
+      if(f.sucursal&&f.sucursal!==f.clientes?.nombre) html+='<div class="fi-meta" style="color:var(--text2)">'+f.sucursal+'</div>';
       html+='<div class="fi-meta">'+f.kg_facturados+' uds facturadas</div>';
       html+='</div>';
     });
@@ -486,6 +554,15 @@ function abrirFactura(facturaId){
   mostrarPantalla('screen-form');
   document.getElementById('form-consec').textContent='#'+facturaSel.consecutivo;
   document.getElementById('form-cliente').textContent=(facturaSel.clientes&&facturaSel.clientes.nombre?facturaSel.clientes.nombre:'-');
+  var sucursalEl=document.getElementById('form-sucursal');
+  if(sucursalEl){
+    if(facturaSel.sucursal&&facturaSel.sucursal!==facturaSel.clientes?.nombre){
+      sucursalEl.textContent=facturaSel.sucursal;
+      sucursalEl.style.display='block';
+    } else {
+      sucursalEl.style.display='none';
+    }
+  }
   document.getElementById('form-kg-fac').textContent=facturaSel.kg_facturados+' unidades facturadas';
   document.getElementById('kc-fac').textContent=facturaSel.kg_facturados;
   resetFormFields();
@@ -595,13 +672,255 @@ function confirmarEntrega(){
   }).catch(function(e){hideLoading();showToast('Error al registrar');console.error(e);});
 }
 
+async function irAConsignacionesPendientes(){
+  mostrarPantalla('screen-consig-pendientes');
+  showLoading('Buscando pendientes...');
+  try{
+  if(!conductorSel){hideLoading();document.getElementById('pend-list').innerHTML='<div class="empty-state"><div class="empty-icon">&#9888;</div><p>Selecciona tu nombre primero</p></div>';return;}
+
+  var bogota=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Bogota'}));
+  var fechas=[];
+  for(var i=1;i<=2;i++){
+    var d=new Date(bogota);
+    d.setDate(d.getDate()-i);
+    fechas.push(d.toISOString().split('T')[0]);
+  }
+
+  var H2={apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY};
+
+  // Traer facturas de ayer y anteayer del conductor
+  var facturasAnt=[];
+  for(var fi=0;fi<fechas.length;fi++){
+    var r=await fetch(SUPA_URL+'/rest/v1/facturas?select=id,consecutivo,fecha,kg_facturados,repartidor_id,cliente_id&fecha=eq.'+fechas[fi]+'&repartidor_id=eq.'+conductorSel.id+'&limit=500',{headers:H2});
+    var d=await r.json();
+    if(Array.isArray(d)) facturasAnt=facturasAnt.concat(d);
+  }
+
+  if(!facturasAnt.length){hideLoading();document.getElementById('pend-list').innerHTML='<div class="empty-state"><div class="empty-icon">&#9989;</div><p>No hay consignaciones pendientes de dias anteriores</p></div>';return;}
+
+  // Traer clientes
+  var cRes=await fetch(SUPA_URL+'/rest/v1/clientes?select=id,nombre&limit=1000',{headers:H2}).then(function(r){return r.ok?r.json():[];});
+  var cMap={};(cRes||[]).forEach(function(c){cMap[c.id]=c.nombre;});
+
+  // Traer entregas de esas facturas
+  var ids=facturasAnt.map(function(f){return f.id;});
+  var entregasAnt=[];
+  // Split en chunks de 50 para no exceder URL
+  for(var ci=0;ci<ids.length;ci+=50){
+    var chunk=ids.slice(ci,ci+50);
+    var er=await fetch(SUPA_URL+'/rest/v1/entregas?select=id,factura_id,metodo_pago,monto_efectivo&factura_id=in.('+chunk.join(',')+')',{headers:H2});
+    var ed=await er.json();
+    if(Array.isArray(ed)) entregasAnt=entregasAnt.concat(ed);
+  }
+  var entMap={};entregasAnt.forEach(function(e){entMap[e.factura_id]=e;});
+
+  // Traer consignaciones ya registradas
+  var crRes=await fetch(SUPA_URL+'/rest/v1/consignacion_facturas?select=factura_id&limit=5000',{headers:H2}).then(function(r){return r.ok?r.json():[];});
+  var yaConsignadas=new Set((crRes||[]).map(function(c){return c.factura_id;}));
+
+  // Filtrar pendientes
+  var pendientes=facturasAnt.filter(function(f){
+    var e=entMap[f.id];
+    if(!e) return false;
+    if(e.metodo_pago!=='efectivo'&&e.metodo_pago!=='parcial') return false;
+    if(!e.monto_efectivo||e.monto_efectivo<=0) return false;
+    if(yaConsignadas.has(f.id)) return false;
+    return true;
+  }).map(function(f){
+    return Object.assign({},f,{cliente:cMap[f.cliente_id]||'-',monto_efectivo:entMap[f.id]?entMap[f.id].monto_efectivo:0});
+  });
+
+  hideLoading();
+  var list=document.getElementById('pend-list');
+  if(!pendientes.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">&#9989;</div><p>No hay consignaciones pendientes de dias anteriores</p></div>';
+    return;
+  }
+
+  var porFecha={};
+  pendientes.forEach(function(f){if(!porFecha[f.fecha])porFecha[f.fecha]=[];porFecha[f.fecha].push(f);});
+
+  var html='';
+  Object.keys(porFecha).sort().reverse().forEach(function(fecha){
+    var facts=porFecha[fecha];
+    var totalFecha=facts.reduce(function(s,f){return s+f.monto_efectivo;},0);
+    html+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);font-weight:600;margin-bottom:8px;margin-top:16px">'+fecha+' · $'+Math.round(totalFecha).toLocaleString('es-CO')+'</div>';
+    facts.forEach(function(f){
+      html+='<div class="factura-item pendiente" style="border-left-color:var(--amber)">';
+      html+='<div class="fi-top"><span class="fi-consec">#'+f.consecutivo+'</span><span class="fi-badge pendiente">Sin consignar</span></div>';
+      html+='<div class="fi-cliente">'+f.cliente+'</div>';
+      html+='<div class="fi-meta">Efectivo: $'+Math.round(f.monto_efectivo).toLocaleString('es-CO')+'</div>';
+      html+='</div>';
+    });
+    html+='<button class="btn-confirm" style="margin-top:10px;background:var(--amber)" data-fecha="'+fecha+'" onclick="irAConsignacionFecha(this.getAttribute(\'data-fecha\'))">Registrar consignacion del '+fecha+'</button>';
+  });
+  list.innerHTML=html;
+
+  // Guardar para usar en la consignacion
+  window._facturasAnteriores=pendientes;
+  window._entMapAnt=entMap;
+  }catch(e){hideLoading();showToast('Error al cargar. Verifica tu conexion.');console.error(e);}
+}
+
+function irAConsignacionFecha(fecha){
+  // Override hoy temporalmente para usar esa fecha
+  window._consigFechaOverride=fecha;
+  mostrarPantalla('screen-consignacion');
+  document.getElementById('consig-success').classList.remove('show');
+  document.getElementById('consig-success').style.display='none';
+  document.getElementById('consig-aviso-diff').style.display='none';
+  document.getElementById('consig-obs').value='';
+  document.getElementById('photo-consig-file').value='';
+  document.getElementById('photo-consig-zone').classList.remove('has-photo');
+  renderConsigFacturasParaFecha(fecha);
+}
+
+function renderConsigFacturasParaFecha(fecha){
+  var facts=(window._facturasAnteriores||[]).filter(function(f){return f.fecha===fecha;});
+  consigSeleccionadas=new Set();
+  var list=document.getElementById('consig-facturas-list');
+  var html='<div class="sec-title" style="margin-bottom:12px">Facturas con efectivo del '+fecha+'</div>';
+  facts.forEach(function(f){
+    var monto=f.monto_efectivo||0;
+    html+='<div class="consig-item" data-fid="'+f.id+'" data-monto="'+monto+'" onclick="toggleConsig(this)">';
+    html+='<div class="consig-check" id="chk-'+f.id+'"></div>';
+    html+='<div class="consig-info"><div class="consig-consec">#'+f.consecutivo+'</div><div class="consig-cliente">'+f.cliente+'</div></div>';
+    html+='<div class="consig-monto">$'+Math.round(monto).toLocaleString('es-CO')+'</div>';
+    html+='</div>';
+  });
+  list.innerHTML=html;
+  actualizarTotalConsig();
+  document.querySelector('#screen-consignacion .btn-confirm').style.display='';
+}
+
+function irAConsignacion(){
+  mostrarPantalla('screen-consignacion');
+  document.getElementById('consig-success').classList.remove('show');
+  document.getElementById('consig-success').style.display='none';
+  document.getElementById('consig-aviso-diff').style.display='none';
+  document.getElementById('consig-obs').value='';
+  document.getElementById('photo-consig-file').value='';
+  document.getElementById('photo-consig-zone').classList.remove('has-photo');
+  renderConsigFacturas();
+}
+
+var consigSeleccionadas=new Set();
+
+function renderConsigFacturas(){
+  consigSeleccionadas=new Set();
+  // Solo facturas del dia con efectivo ya entregadas
+  var misFacturas=todasFacturas.filter(function(f){
+    return f.repartidor_id===conductorSel.id&&f.fecha===hoy;
+  });
+  var entregaMap={};
+  todasEntregas.forEach(function(e){entregaMap[e.factura_id]=e;});
+  var conEfectivo=misFacturas.filter(function(f){
+    var e=entregaMap[f.id];
+    return e&&(e.metodo_pago==='efectivo'||e.metodo_pago==='parcial')&&e.monto_efectivo>0;
+  });
+
+  var list=document.getElementById('consig-facturas-list');
+  if(!conEfectivo.length){
+    list.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No hay facturas con pago en efectivo registrado hoy</div>';
+    return;
+  }
+  var html='<div class="sec-title" style="margin-bottom:12px">Facturas con efectivo de hoy</div>';
+  conEfectivo.forEach(function(f){
+    var e=entregaMap[f.id];
+    var monto=e.monto_efectivo||0;
+    var cliente=f.clientes&&f.clientes.nombre?f.clientes.nombre:'-';
+    html+='<div class="consig-item" data-fid="'+f.id+'" data-monto="'+monto+'" onclick="toggleConsig(this)">';
+    html+='<div class="consig-check" id="chk-'+f.id+'"></div>';
+    html+='<div class="consig-info"><div class="consig-consec">#'+f.consecutivo+'</div><div class="consig-cliente">'+cliente+'</div></div>';
+    html+='<div class="consig-monto">$'+Math.round(monto).toLocaleString('es-CO')+'</div>';
+    html+='</div>';
+  });
+  list.innerHTML=html;
+  actualizarTotalConsig();
+}
+
+function toggleConsig(el){
+  var fid=el.getAttribute('data-fid');
+  var chk=document.getElementById('chk-'+fid);
+  if(consigSeleccionadas.has(fid)){
+    consigSeleccionadas.delete(fid);
+    chk.classList.remove('checked');
+    chk.innerHTML='';
+  } else {
+    consigSeleccionadas.add(fid);
+    chk.classList.add('checked');
+    chk.innerHTML='&#10003;';
+  }
+  actualizarTotalConsig();
+}
+
+function actualizarTotalConsig(){
+  var total=0;
+  consigSeleccionadas.forEach(function(fid){
+    var el=document.querySelector('[data-fid="'+fid+'"]');
+    if(el) total+=parseFloat(el.getAttribute('data-monto'))||0;
+  });
+  document.getElementById('consig-count').textContent=consigSeleccionadas.size;
+  document.getElementById('consig-total').textContent='$'+Math.round(total).toLocaleString('es-CO');
+}
+
+function sbPostConsig(t,b){
+  var h={apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'return=representation'};
+  return fetch(SUPA_URL+'/rest/v1/'+t,{method:'POST',headers:h,body:JSON.stringify(b)})
+    .then(function(r){return r.text().then(function(tx){try{return{data:JSON.parse(tx),error:r.ok?null:tx};}catch(e){return{data:null,error:tx};}});});
+}
+
+async function confirmarConsignacion(){
+  if(consigSeleccionadas.size===0){showToast('Selecciona al menos una factura');return;}
+  var fotoFile=document.getElementById('photo-consig-file').files[0];
+  if(!fotoFile){showToast('La foto del baucher es obligatoria');return;}
+
+  // Calcular total
+  var total=0;
+  consigSeleccionadas.forEach(function(fid){
+    var el=document.querySelector('[data-fid="'+fid+'"]');
+    if(el) total+=parseFloat(el.getAttribute('data-monto'))||0;
+  });
+
+  showLoading('Subiendo foto...');
+  var ext=fotoFile.name.split('.').pop()||'jpg';
+  var fotoUrl=await sbUpload('consig_'+conductorSel.id+'_'+Date.now()+'.'+ext,fotoFile);
+
+  showLoading('Registrando...');
+  var obs=document.getElementById('consig-obs').value.trim();
+  var res=await sbPostConsig('consignaciones',{
+    repartidor_id:conductorSel.id,
+    fecha:hoy,
+    foto_url:fotoUrl,
+    monto_total:total,
+    observaciones:obs||null
+  });
+  if(res.error){hideLoading();showToast('Error al registrar');console.error(res.error);return;}
+  var consigId=res.data&&res.data[0]?res.data[0].id:null;
+  if(consigId){
+    var items=Array.from(consigSeleccionadas).map(function(fid){
+      var el=document.querySelector('[data-fid="'+fid+'"]');
+      var monto=el?parseFloat(el.getAttribute('data-monto'))||0:0;
+      return {consignacion_id:consigId,factura_id:fid,monto:monto};
+    });
+    for(var i=0;i<items.length;i++){
+      await sbPostConsig('consignacion_facturas',items[i]);
+    }
+  }
+  hideLoading();
+  document.getElementById('consig-success-txt').textContent=
+    consigSeleccionadas.size+' factura'+(consigSeleccionadas.size!==1?'s':'')+' · Total: $'+Math.round(total).toLocaleString('es-CO');
+  document.getElementById('consig-success').style.display='block';
+  document.getElementById('consig-success').classList.add('show');
+  document.querySelector('#screen-consignacion .btn-confirm').style.display='none';
+}
+
 function recargarEntregas(){
-  sbGet('entregas','select=id,factura_id,kg_recibidos,metodo_pago,registrado_en&limit=5000').then(function(data){
+  sbGet('entregas','select=id,factura_id,kg_recibidos,metodo_pago,monto_efectivo,registrado_en&limit=5000').then(function(data){
     todasEntregas=data||[];
     if(conductorSel) renderFacturasDelDia();
   });
 }
-
 function mostrarSuccess(entrega){
   document.getElementById('form-view').style.display='none';
   document.getElementById('success-view').classList.add('show');
