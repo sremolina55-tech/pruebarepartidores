@@ -210,7 +210,7 @@ function buildNav(){
     if(g.single)return`<button onclick="showView('${g.id}')" id="nav-${g.id}">${g.ic} <span>${g.l}</span></button>`;
     return`<div id="${g.id}"><button class="grp-hdr" onclick="toggleGrp('${g.id}')">${g.ic} <span>${g.l}</span><span class="arr">▼</span></button><div class="grp-body" id="${g.id}-body">${g.subs.map(s=>`<button onclick="showView('${s.id}')" id="nav-${s.id}">· <span>${s.l}</span></button>`).join("")}</div></div>`;
   }).join("");
-  const mi=[{id:"dashboard",ic:"◆",l:"Hoy"},{id:"agenda",ic:"📅",l:"Agenda"},{id:"pedidos",ic:"📦",l:"Pedidos"},{id:"clientes",ic:"👥",l:"Clientes"},{id:"prospectos",ic:"🎯",l:"Prospectos"}];
+  const mi=[{id:"dashboard",ic:"◆",l:"Hoy"},{id:"agenda",ic:"📅",l:"Agenda"},{id:"nueva-visita",ic:"📍",l:"Visita"},{id:"pedidos",ic:"📦",l:"Pedidos"},{id:"clientes",ic:"👥",l:"Clientes"},{id:"prospectos",ic:"🎯",l:"Prospectos"}];
   $("mnav").innerHTML=mi.map(i=>`<button onclick="showView('${i.id}')" id="mn-${i.id}"><span class="ic">${i.ic}</span>${i.l}</button>`).join("")+`<button onclick="logout()"><span class="ic">⏻</span>Salir</button>`;
   if(U.rol==="admin"){document.querySelector(".sb .ft").innerHTML='<button onclick="logout()">Salir</button><button onclick="actualizarUrlServicio()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;font-family:var(--ff);margin-left:8px">🔧 URL API</button>'}
 }
