@@ -437,7 +437,8 @@ function rLn(i){pedLineas.splice(i,1);drawPedInline()}
 async function envPed(){if(!_pedData.cl||!pedLineas.length){showT("Faltan datos","error");return}
 const clCheck=clientes.find(c=>c.id===_pedData.cl);
 const _celOk=clCheck?.celular&&clCheck.celular!=="Sin registro";const _telOk=clCheck?.telefono&&clCheck.telefono!=="Sin registro";const _emaOk=clCheck?.correo_electronico&&clCheck.correo_electronico.includes("@");
-const _perfilOk=clCheck?.clasificacion_a&&clCheck?.lista_precio_id&&_celOk&&_telOk&&_emaOk;
+const _clienteNuevo=(clCheck?.fecha_ingreso||"")>="2026-06-10";
+const _perfilOk=!_clienteNuevo||(clCheck?.clasificacion_a&&clCheck?.lista_precio_id&&_celOk&&_telOk&&_emaOk);
 if(!_perfilOk){showT("⚠ Completa el perfil del cliente antes de hacer pedidos (clasificación A, lista de precios, email, teléfono y celular)","error");await loadCl();renderClForm(clCheck);return}
 const bruto=pedLineas.reduce((s,l)=>s+l.valor*l.qty,0);const desc=pedLineas.reduce((s,l)=>s+(l.desc||0),0);const total=bruto-desc;
 const isVD=_pedData.tipo==="vd";
