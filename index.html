@@ -1273,7 +1273,9 @@ function renderProspForm(p){
   const lo=listasP.map(l=>`<option value="${l.id}" ${p&&p.lista_precio_id===l.id?"selected":""}>${l.nombre}</option>`).join("");
   const dO=Object.keys(DEPTOS).sort().map(d=>`<option value="${d}">${d}</option>`).join("");
   const tdO=TIPOSDOC.map(t=>`<option value="${t.v}" ${p&&p.tipo_documento===t.v?"selected":(!p&&t.v==="13"?"selected":"")}>${t.l}</option>`).join("");
-  const fuO=FUENTES_PROSP.map(f=>`<option value="${f}" ${p&&p.fuente===f?"selected":""}>${f}</option>`).join("");
+  const fuenteBase=p?.fuente?.startsWith("Otro:")?"Otro":(p?.fuente||"");
+  const fuenteOtroVal=p?.fuente?.startsWith("Otro:")?p.fuente.replace(/^Otro:\s*/,""):"";
+  const fuO=FUENTES_PROSP.map(f=>`<option value="${f}" ${fuenteBase===f?"selected":""}>${f}</option>`).join("");
   const etO=ETAPAS_PROSP.filter(e=>e.v!=="Convertido"&&e.v!=="Perdido").map(e=>`<option value="${e.v}" ${p&&p.etapa===e.v?"selected":(!p&&e.v==="Identificado"?"selected":"")}>${e.v}</option>`).join("");
   $("mc").innerHTML=`
 <div style="margin-bottom:16px"><button class="btn bs bsm" onclick="showView('prospectos')">← Volver</button><h2 style="margin-top:8px">${isEdit?"Editar":"Nuevo"} prospecto</h2></div>
@@ -1288,8 +1290,9 @@ function renderProspForm(p){
 <div class="grid g3">
 ${U.rol!=="vendedor"?`<div class="field"><label>Vendedor</label><select id="pp-ven"><option value="">Sel.</option>${vo}</select></div>`:""}
 <div class="field"><label>Tipología</label><select id="pp-tip"><option value="">Sel.</option>${to}</select></div>
-<div class="field"><label>Fuente</label><select id="pp-fue">${fuO}</select></div>
+<div class="field"><label>Fuente</label><select id="pp-fue" onchange="chkFuente()">${fuO}</select></div>
 </div>
+<div id="pp-fue-otro-wrap" style="display:${fuenteOtroVal?"block":"none"}"><div class="field"><label><span class="req">* </span>¿Cuál otro canal?</label><input id="pp-fue-otro" value="${escHtml(fuenteOtroVal)}" placeholder="Describe cómo llegó este prospecto"></div></div>
 <div class="st">Ubicación</div>
 <div class="grid g3">
 <div class="field"><label>Depto.</label><select id="pp-dep" onchange="uCiuP()"><option value="">Sel.</option>${dO}</select></div>
@@ -1328,6 +1331,7 @@ ${U.rol!=="vendedor"?`<div class="field"><label>Vendedor</label><select id="pp-v
 }
 
 function fmtValPot(inp){const raw=inp.value.replace(/\D/g,"");inp.value=raw?new Intl.NumberFormat("es-CO").format(parseInt(raw)):"";}
+function chkFuente(){const f=$("pp-fue")?.value;const w=$("pp-fue-otro-wrap");if(w)w.style.display=f==="Otro"?"block":"none";if(f==="Otro")setTimeout(()=>$("pp-fue-otro")?.focus(),50);}
 function uCiuP(){const d=$("pp-dep").value,s=$("pp-ciu");s.innerHTML='<option value="">'+(d?"Sel.":"Sel. depto.")+'</option>';if(d&&DEPTOS[d])DEPTOS[d].forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;s.appendChild(o)})}
 
 async function saveProsp(eid){
@@ -1337,6 +1341,7 @@ async function saveProsp(eid){
   if(!nom){showT("El nombre del negocio es obligatorio","error");$("pp-nom")?.focus();return}
   if(!dir){showT("La dirección es obligatoria","error");$("pp-dir")?.focus();return}
   if(!cel){showT("El celular es obligatorio","error");$("pp-cel")?.focus();return}
+  if($("pp-fue")?.value==="Otro"&&!$("pp-fue-otro")?.value.trim()){showT("Describe el canal 'Otro'","error");$("pp-fue-otro")?.focus();return}
   if(!eid){
     const nomNorm=nom.trim().toLowerCase();
     const dupProsp=prospectos.find(p=>p.nombre?.trim().toLowerCase()===nomNorm);
@@ -1348,7 +1353,7 @@ async function saveProsp(eid){
   const payload={
     nombre:nom,tipo_documento:$("pp-td")?.value||"13",numero_documento:$("pp-doc")?.value.trim()||null,
     vendedor_id:vid||null,tipologia_id:$("pp-tip")?.value||null,lista_precio_id:$("pp-lis")?.value||null,
-    fuente:$("pp-fue")?.value||"Visita en ruta",
+    fuente:(()=>{const f=$("pp-fue")?.value||"Visita en ruta";if(f==="Otro"){const d=$("pp-fue-otro")?.value.trim();return d?"Otro: "+d:"Otro";}return f;})(),
     ciudad:$("pp-ciu")?.value||null,barrio:$("pp-bar")?.value.trim()||null,
     direccion:$("pp-dir")?.value.trim()||null,zona:$("pp-zon")?.value.trim()||"TAT",
     telefono:$("pp-tel")?.value.trim()||null,celular:$("pp-cel")?.value.trim()||null,
