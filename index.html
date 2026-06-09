@@ -179,7 +179,7 @@ const RESULTADOS=["Pedido","Cotización","Sin pedido","No atendido","Cerrado","S
 const MOTIVOS=["Cliente tiene stock","No desea producto","Cerrado","No atendieron","Precio no competitivo","Problema calidad","Otro"];
 const TIPOSDOC=[{v:"13",l:"13 - Cédula de Ciudadanía"},{v:"22",l:"22 - Cédula de Extranjería"},{v:"31",l:"31 - NIT"},{v:"47",l:"47 - Permiso Protección Temporal (PPT)"},{v:"46",l:"46 - Carnet Diplomático"},{v:"41",l:"41 - Pasaporte"},{v:"42",l:"42 - Documento Identificación Extranjero"},{v:"11",l:"11 - Registro Civil"},{v:"12",l:"12 - Tarjeta de Identidad"},{v:"21",l:"21 - Tarjeta de Extranjería"},{v:"50",l:"50 - NIT de Otro País"},{v:"91",l:"91 - NUIP"}];
 const CAN_VD=["LID003","VEN005"];
-const CAN_PR=["LID003","VEN010"];
+const CAN_PR=["LID003","VEN005"];
 async function api(t,m="GET",b=null,q=""){const h={apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"};if(m==="POST"||m==="PATCH")h.Prefer="return=representation";if(m==="DELETE")h.Prefer="";const o={method:m,headers:h};if(b)o.body=JSON.stringify(b);const r=await fetch(SB+"/rest/v1/"+t+q,o);if(!r.ok){const errText=await r.text();throw new Error(errText)}const x=await r.text();return x?JSON.parse(x):null}
 function $(id){return document.getElementById(id)}
 function fmt(n){return new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",minimumFractionDigits:0}).format(n)}
