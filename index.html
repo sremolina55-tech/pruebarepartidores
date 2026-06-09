@@ -1372,13 +1372,15 @@ async function saveProsp(eid){
       const res=await api("crm_prospectos","POST",payload);
       const newId=res&&res[0]?res[0].id:null;
       if(newId&&payload.proximo_contacto){
-        await api("crm_actividades","POST",{
-          tipo:"llamada",fecha:payload.proximo_contacto,hora_inicio:"09:00",
-          titulo:"Primer contacto con "+nom,
-          vendedor_id:vid||null,prospecto_id:newId,
-          estado:"pendiente",created_by:U.usuario
-        });
-        showT("✓ Prospecto creado — actividad de primer contacto programada");
+        try{
+          await api("crm_actividades","POST",{
+            tipo:"llamada",fecha:payload.proximo_contacto,hora_inicio:"09:00",
+            titulo:"Primer contacto con "+nom,
+            vendedor_id:vid||null,prospecto_id:newId,
+            estado:"pendiente",created_by:U.usuario
+          });
+          showT("✓ Prospecto creado — actividad de primer contacto programada");
+        }catch{showT("Prospecto creado ✓");}
       }else{showT("Prospecto creado ✓")}
       showView("prospectos");
     }
