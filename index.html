@@ -1273,8 +1273,8 @@ function renderProspForm(p){
   const lo=listasP.map(l=>`<option value="${l.id}" ${p&&p.lista_precio_id===l.id?"selected":""}>${l.nombre}</option>`).join("");
   const dO=Object.keys(DEPTOS).sort().map(d=>`<option value="${d}">${d}</option>`).join("");
   const tdO=TIPOSDOC.map(t=>`<option value="${t.v}" ${p&&p.tipo_documento===t.v?"selected":(!p&&t.v==="13"?"selected":"")}>${t.l}</option>`).join("");
-  const fuenteBase=p?.fuente?.startsWith("Otro:")?"Otro":(p?.fuente||"");
-  const fuenteOtroVal=p?.fuente?.startsWith("Otro:")?p.fuente.replace(/^Otro:\s*/,""):"";
+  const fuenteBase=p?.fuente||"";
+  const fuenteOtroVal=p?.fuente_detalle||"";
   const fuO=FUENTES_PROSP.map(f=>`<option value="${f}" ${fuenteBase===f?"selected":""}>${f}</option>`).join("");
   const etO=ETAPAS_PROSP.filter(e=>e.v!=="Convertido"&&e.v!=="Perdido").map(e=>`<option value="${e.v}" ${p&&p.etapa===e.v?"selected":(!p&&e.v==="Identificado"?"selected":"")}>${e.v}</option>`).join("");
   $("mc").innerHTML=`
@@ -1353,7 +1353,8 @@ async function saveProsp(eid){
   const payload={
     nombre:nom,tipo_documento:$("pp-td")?.value||"13",numero_documento:$("pp-doc")?.value.trim()||null,
     vendedor_id:vid||null,tipologia_id:$("pp-tip")?.value||null,lista_precio_id:$("pp-lis")?.value||null,
-    fuente:(()=>{const f=$("pp-fue")?.value||"Visita en ruta";if(f==="Otro"){const d=$("pp-fue-otro")?.value.trim();return d?"Otro: "+d:"Otro";}return f;})(),
+    fuente:(()=>{const f=$("pp-fue")?.value||"Visita en ruta";return f==="Otro"?"Otro":f;})(),
+    fuente_detalle:(()=>{const f=$("pp-fue")?.value||"";return f==="Otro"?($("pp-fue-otro")?.value.trim()||null):null;})(),
     ciudad:$("pp-ciu")?.value||null,barrio:$("pp-bar")?.value.trim()||null,
     direccion:$("pp-dir")?.value.trim()||null,zona:$("pp-zon")?.value.trim()||"TAT",
     telefono:$("pp-tel")?.value.trim()||null,celular:$("pp-cel")?.value.trim()||null,
@@ -1433,7 +1434,7 @@ async function viewProspDetail(pid){
 <div style="margin-bottom:16px"><button class="btn bs bsm" onclick="showView('prospectos')">← Volver</button></div>
 <div class="fc" style="margin-bottom:16px">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-  <div><h2 style="margin:0">${p.nombre}</h2><div style="font-size:11px;color:var(--muted);margin-top:2px">${p.codigo} · ${p.fuente||""}</div></div>
+  <div><h2 style="margin:0">${p.nombre}</h2><div style="font-size:11px;color:var(--muted);margin-top:2px">${p.codigo} · ${p.fuente||""}${p.fuente==="Otro"&&p.fuente_detalle?" ("+p.fuente_detalle+")":""}</div></div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">
     <span class="badge ${cfg.badge}" style="font-size:13px;padding:5px 14px">${p.etapa}</span>
     ${p.valor_potencial?`<span style="font-size:14px;font-weight:800;color:var(--green)">${fmt(p.valor_potencial)}/mes</span>`:""}
