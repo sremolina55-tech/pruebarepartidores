@@ -386,13 +386,13 @@ function selVM(el,m){document.querySelectorAll(".mbtn").forEach(b=>b.classList.r
 async function saveVis(){const clId=_visClId,r=window._vR;if(!clId){showT("Selecciona cliente","error");return}if(!r){showT("Selecciona resultado","error");return}
 if(r==="Pedido"){await autoSaveAndPedido(clId);return}
 const isCot=r==="Cotización",m=parseFloat($("vf-m")?.value)||0,k=parseFloat($("vf-k")?.value)||0;
-const vid=U.vendedor_id||U.id;
+const vid=U.vendedor_id||null;
 try{const btn=$("vf-sv");btn.disabled=true;btn.textContent="Guardando...";
 await api("crm_visitas","POST",{cliente_id:clId,vendedor_id:vid,fecha:today(),hora:new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit",hour12:false}),resultado:r,monto_pedido:isCot?m:0,kg_pedido:isCot?k:0,motivo_sin_pedido:["Sin pedido","No atendido","Cerrado"].includes(r)?window._vM:null,latitud:_gL,longitud:_gN,observaciones:$("vf-obs")?.value||null});
 if(_gL&&_gN)try{await api("crm_clientes","PATCH",{latitud:_gL,longitud:_gN},"?id=eq."+clId)}catch(ex){}
 showT("Visita registrada");showView("visitas")}catch(e){showT(e.message,"error")}}
 
-async function autoSaveAndPedido(clId){const vid=U.vendedor_id||U.id;
+async function autoSaveAndPedido(clId){const vid=U.vendedor_id||null;
 try{await api("crm_visitas","POST",{cliente_id:clId,vendedor_id:vid,fecha:today(),hora:new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit",hour12:false}),resultado:"Pedido",monto_pedido:0,kg_pedido:0,latitud:_gL,longitud:_gN,observaciones:$("vf-obs")?.value||null});
 if(_gL&&_gN)try{await api("crm_clientes","PATCH",{latitud:_gL,longitud:_gN},"?id=eq."+clId)}catch(ex){}
 showT("Visita registrada — Toma el pedido");$("vis-form-area").style.display="none";$("ped-area").style.display="block";
