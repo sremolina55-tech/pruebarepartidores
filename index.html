@@ -964,7 +964,7 @@ async function loadClActsSection(clId){
 }
 function toggleClActRes(id){const b=$("cl-res-box-"+id);if(!b)return;const open=b.style.display!=="block";b.style.display=open?"block":"none";if(open)$("cl-res-txt-"+id)?.focus()}
 async function completeActCl(id,clId){const txt=$("cl-res-txt-"+id)?.value.trim()||"";try{await api("crm_actividades","PATCH",{estado:"completada",resultado:txt||null},"?id=eq."+id);showT("✅ Actividad completada");loadClActsSection(clId)}catch(e){showT(e.message,"error")}}
-async function cancelActCl(id,clId){try{await api("crm_actividades","PATCH",{estado:"cancelada"},"?id=eq."+id);showT("Actividad cancelada","warning");loadClActsSection(clId)}catch(e){showT(e.message,"error")}}
+async function cancelActCl(id,clId){if(!confirm("¿Cancelar esta actividad?"))return;try{await api("crm_actividades","PATCH",{estado:"cancelada"},"?id=eq."+id);showT("Actividad cancelada","warning");loadClActsSection(clId)}catch(e){showT(e.message,"error")}}
 function editActCl(id,clId){api("crm_actividades","GET",null,"?id=eq."+id+"&select=*").then(r=>{if(r&&r[0])renderActForm(r[0],null,clId,"")}).catch(e=>showT(e.message,"error"))}
 function uCiu(){const d=$("cf-dep").value,s=$("cf-ciu");s.innerHTML='<option value="">'+(d?"Sel.":"Sel. depto.")+'</option>';if(d&&DEPTOS[d])DEPTOS[d].forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;s.appendChild(o)})}
 function eCl(id){const c=clientes.find(x=>x.id===id);if(c)renderClForm(c)}
@@ -1771,6 +1771,7 @@ function editAct(id){
 }
 
 function renderActForm(act,defaultFecha,defaultClienteId,defaultProspectoId){
+  const retCtx=defaultClienteId||"";
   const f=act?.fecha||defaultFecha||_agFecha||today();
   const preClId=act?.cliente_id||defaultClienteId||"";
   const prePrId=act?.prospecto_id||defaultProspectoId||"";
@@ -1812,9 +1813,10 @@ function renderActForm(act,defaultFecha,defaultClienteId,defaultProspectoId){
         <div class="field"><label>🎯 Prospecto</label>
           <select id="act-pr"><option value="">Sin prospecto</option>${prOpts}</select></div>
       </div>
+      <input type="hidden" id="act-ret-cl" value="${retCtx}">
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn bp" onclick="saveAct(${act?"'"+act.id+"'":"null"})" style="flex:1;padding:14px;font-size:15px;font-weight:700">💾 Guardar actividad</button>
-        <button class="btn bs" onclick="renderAgenda()" style="padding:14px 20px">Cancelar</button>
+        <button class="btn bs" onclick="${retCtx?"eCl('"+retCtx+"')":'renderAgenda()'}" style="padding:14px 20px">Cancelar</button>
       </div>
     </div>`;
 }
@@ -1846,7 +1848,9 @@ async function saveAct(eid){
     }
     _agFecha=fecha;
     _agMes=fecha.slice(0,7);
-    await renderAgenda();
+    const retCl=$("act-ret-cl")?.value;
+    if(retCl){const cl=clientes.find(c=>c.id===retCl);if(cl)renderClForm(cl);else await renderAgenda();}
+    else await renderAgenda();
   }catch(e){showT(e.message,"error")}
 }
 </script>
