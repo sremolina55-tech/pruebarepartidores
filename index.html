@@ -659,19 +659,10 @@ async function enviarXiruxPed(pid){
   if(!ped){showT("Pedido no encontrado","error");if(btn){btn.disabled=false;btn.textContent="⬆ Enviar a Xirux";}return;}
   const det=await api("crm_pedido_detalle","GET",null,"?pedido_id=eq."+pid+"&select=*,crm_productos(codigo)")||[];
   if(!det.length){showT("El pedido no tiene productos","error");if(btn){btn.disabled=false;btn.textContent="⬆ Enviar a Xirux";}return;}
-  const clFull=(await api("crm_clientes","GET",null,"?id=eq."+ped.cliente_id+"&select=ciudad,xirux_sync,xirux_condpago"))?.[0]||{};
-  if(!clFull.xirux_sync){
-    showT("⚠ El cliente no está en Xirux. Súbelo primero desde su ficha (botón Subir a Xirux).","error");
-    if(btn){btn.disabled=false;btn.textContent="⬆ Enviar a Xirux";}return;
-  }
   const tercero=(ped.crm_clientes?.codigo||"").replace(/-\d+$/,"");
   const vendedor=ped.crm_vendedores?.nit||"";
   if(!tercero){showT("Cliente sin NIT/CC configurado","error");if(btn){btn.disabled=false;btn.textContent="⬆ Enviar a Xirux";}return;}
   if(!vendedor){showT("Vendedor sin NIT configurado","error");if(btn){btn.disabled=false;btn.textContent="⬆ Enviar a Xirux";}return;}
-  const ciudadNom=clFull.ciudad||ped.crm_clientes?.ciudad||"";
-  const ciudad="CO"+(DIVIPOLA[ciudadNom]||"11001");
-  const cpRaw=ped.condicion_pago||"CONTADO";
-  const condPago=cpRaw.match(/^(\d{4})/)?.[1]||CONDPAGO_OPTS.find(o=>o.l===cpRaw)?.v||"1000";
   const body={
     NroDocumento:"CRM-"+ped.numero_pedido,
     Operacion:"2130",
@@ -680,13 +671,9 @@ async function enviarXiruxPed(pid){
     Tercero:tercero,
     Vendedor:vendedor,
     PuntoVenta:ped.crm_sucursales?.codigo_sucursal||"1",
-    Ciudad:ciudad,
-    CondPago:condPago,
-    ViaDespacho:"01",
-    Detalle:det.map((d,i)=>{const it={NumItem:i+1,Producto:d.crm_productos?.codigo||"",Cantidad:d.cantidad,Valor:d.valor_unitario,PorIva:0};if(d.descuento_pct)it.PorDesc=d.descuento_pct;return it;})
+    Detalle:det.map((d,i)=>{const it={NumItem:i+1,Producto:d.crm_productos?.codigo||"",Cantidad:d.cantidad,Valor:d.valor_unitario};if(d.descuento_pct)it.PorDesc=d.descuento_pct;return it;})
   };
   if(ped.observaciones)body.Observacion=ped.observaciones;
-  console.log("PAYLOAD PEDIDO XIRUX:",JSON.stringify(body));
   try{
     const res=await xiruxProxy("/api/Ventas/Pedido",body);
     if(res.Valido===true){
@@ -695,10 +682,8 @@ async function enviarXiruxPed(pid){
       showT("Pedido #"+ped.numero_pedido+" enviado a Xirux ERP ✓");
       viewPedDetail(pid);
     }else{
-      const errores=(res.Data||[]).map(e=>e.Detalle||e.Mensaje).filter(Boolean).join(" — ");
-      const msg=errores||res.Mensaje||JSON.stringify(res);
+      const msg=res.Mensaje||res.Data?.[0]?.Detalle||JSON.stringify(res);
       showT("Xirux: "+msg,"error");
-      console.log("RESPUESTA XIRUX:",JSON.stringify(res));
       if(btn){btn.disabled=false;btn.textContent="⬆ Enviar a Xirux";}
     }
   }catch(e){
