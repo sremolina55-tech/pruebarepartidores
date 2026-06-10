@@ -1579,7 +1579,7 @@ async function loadActs(){
     let vf="";
     if(U.rol==="vendedor")vf="&vendedor_id=eq."+U.vendedor_id;
     else if(U.rol==="lider"&&supIds.length)vf="&vendedor_id=in.("+supIds.join(",")+")";
-    const sel="&select=*,crm_vendedores(nombre),crm_clientes(nombre),crm_prospectos(nombre)";
+    const sel="&select=*,crm_vendedores(nombre),crm_clientes(nombre,celular,telefono),crm_prospectos(nombre)";
     const [month,overdue]=await Promise.all([
       api("crm_actividades","GET",null,`?order=fecha,hora_inicio${sel}&fecha=gte.${from}&fecha=lte.${to}${vf}`),
       api("crm_actividades","GET",null,`?estado=eq.pendiente&fecha=lt.${today()}&order=fecha.desc${sel}${vf}`)
@@ -1720,6 +1720,7 @@ function renderActCard(a){
     </div>
     ${a.descripcion?`<div class="act-sub" style="margin-top:6px;color:var(--fg)">💬 ${escHtml(a.descripcion)}</div>`:""}
     ${a.resultado?`<div class="act-result">📝 <strong>Resultado:</strong> ${escHtml(a.resultado)}</div>`:""}
+    ${(()=>{const raw=a.crm_clientes?.celular||a.crm_clientes?.telefono||"";const d=raw.replace(/\D/g,"");const wa=d&&raw!=="Sin registro"?(d.startsWith("57")?d:d.length===10?"57"+d:d):null;return(a.tipo==="llamada"&&wa)?`<div style="margin-top:8px"><a href="https://wa.me/${wa}" target="_blank" class="btn bsm" style="background:#25d366;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">💬 Abrir WhatsApp</a></div>`:"";})()}
     ${canEdit&&isPending?`<div class="act-actions">
       <button class="btn bg bsm" onclick="toggleActRes('${a.id}')">✓ Completar</button>
       <button class="btn bs bsm" onclick="editAct('${a.id}')">✏ Editar</button>
