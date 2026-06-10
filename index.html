@@ -1704,6 +1704,10 @@ function renderActCard(a){
   const myId=U.vendedor_id;
   const canEdit=U.rol==="admin"||(U.rol==="vendedor"&&a.vendedor_id===myId)||(U.rol==="lider"&&myId&&a.vendedor_id===myId);
   const isPending=a.estado==="pendiente";
+  const _rawTel=a.crm_clientes?.celular||a.crm_clientes?.telefono||"";
+  const _digs=_rawTel.replace(/\D/g,"");
+  const _waNum=(_digs&&_rawTel!=="Sin registro")?(_digs.startsWith("57")?_digs:_digs.length===10?"57"+_digs:_digs):null;
+  const waBtn=(a.tipo==="llamada"&&_waNum)?`<div style="margin-top:8px"><a href="https://wa.me/${_waNum}" target="_blank" class="btn bsm" style="background:#25d366;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">💬 Abrir WhatsApp</a></div>`:"";
   return`<div class="ag-act-card" id="card-${a.id}" style="border-left-color:${tipo.col}">
     <div class="act-top">
       <span class="act-time">${(a.hora_inicio||"").slice(0,5)||"—"}</span>
@@ -1720,7 +1724,7 @@ function renderActCard(a){
     </div>
     ${a.descripcion?`<div class="act-sub" style="margin-top:6px;color:var(--fg)">💬 ${escHtml(a.descripcion)}</div>`:""}
     ${a.resultado?`<div class="act-result">📝 <strong>Resultado:</strong> ${escHtml(a.resultado)}</div>`:""}
-    ${(()=>{const raw=a.crm_clientes?.celular||a.crm_clientes?.telefono||"";const d=raw.replace(/\D/g,"");const wa=d&&raw!=="Sin registro"?(d.startsWith("57")?d:d.length===10?"57"+d:d):null;return(a.tipo==="llamada"&&wa)?`<div style="margin-top:8px"><a href="https://wa.me/${wa}" target="_blank" class="btn bsm" style="background:#25d366;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">💬 Abrir WhatsApp</a></div>`:"";})()}
+    ${waBtn}
     ${canEdit&&isPending?`<div class="act-actions">
       <button class="btn bg bsm" onclick="toggleActRes('${a.id}')">✓ Completar</button>
       <button class="btn bs bsm" onclick="editAct('${a.id}')">✏ Editar</button>
