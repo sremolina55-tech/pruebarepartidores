@@ -1579,7 +1579,7 @@ async function loadActs(){
     let vf="";
     if(U.rol==="vendedor")vf="&vendedor_id=eq."+U.vendedor_id;
     else if(U.rol==="lider"&&supIds.length)vf="&vendedor_id=in.("+supIds.join(",")+")";
-    const sel="&select=*,crm_vendedores(nombre),crm_clientes(nombre,celular,telefono),crm_prospectos(nombre)";
+    const sel="&select=*,crm_vendedores(nombre),crm_clientes(nombre,celular,telefono),crm_prospectos(nombre,celular,telefono)";
     const [month,overdue]=await Promise.all([
       api("crm_actividades","GET",null,`?order=fecha,hora_inicio${sel}&fecha=gte.${from}&fecha=lte.${to}${vf}`),
       api("crm_actividades","GET",null,`?estado=eq.pendiente&fecha=lt.${today()}&order=fecha.desc${sel}${vf}`)
@@ -1704,7 +1704,7 @@ function renderActCard(a){
   const myId=U.vendedor_id;
   const canEdit=U.rol==="admin"||(U.rol==="vendedor"&&a.vendedor_id===myId)||(U.rol==="lider"&&myId&&a.vendedor_id===myId);
   const isPending=a.estado==="pendiente";
-  const _rawTel=a.crm_clientes?.celular||a.crm_clientes?.telefono||"";
+  const _rawTel=a.crm_clientes?.celular||a.crm_clientes?.telefono||a.crm_prospectos?.celular||a.crm_prospectos?.telefono||"";
   const _digs=_rawTel.replace(/\D/g,"");
   const _waNum=(_digs&&_rawTel!=="Sin registro")?(_digs.startsWith("57")?_digs:_digs.length===10?"57"+_digs:_digs):null;
   const waBtn=(a.tipo==="llamada"&&_waNum)?`<div style="margin-top:8px"><a href="https://wa.me/${_waNum}" target="_blank" class="btn bsm" style="background:#25d366;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px">💬 Abrir WhatsApp</a></div>`:"";
