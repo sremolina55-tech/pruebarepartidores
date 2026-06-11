@@ -401,13 +401,15 @@ pedLineas=[];pedTab=1;_pedData={cl:clId,tipo:_tipoPed};drawPedInline()}catch(e){
 
 // ═══ PEDIDO INLINE ═══
 let _ssPedCl=null;
-function drawPedInline(){const selCl=_pedData.cl||"";const clName=clientes.find(c=>c.id===selCl)?.nombre||"";const clOpts=clientes.map(c=>({value:c.id,label:c.codigo+". "+c.nombre}));
+function drawPedInline(){const selCl=_pedData.cl||"";const clData=clientes.find(c=>c.id===selCl);const clName=clData?.nombre||"";const clOpts=clientes.map(c=>({value:c.id,label:c.codigo+". "+c.nombre}));
 const isVD=_pedData.tipo==="vd";
+const cpVal=_pedData.cp||(clData?.xirux_condpago?CONDPAGO_OPTS.find(o=>o.v===clData.xirux_condpago)?.v||"1000":"1000");
+const cpOpts=CONDPAGO_OPTS.map(o=>`<option value="${o.v}" ${cpVal===o.v?"selected":""}>${o.v} – ${o.l}</option>`).join("");
 const th=`<div class="tabs"><button class="${pedTab===1?"act":""}" onclick="pedTab=1;drawPedInline()">Pedido</button><button class="${pedTab===2?"act":""}" onclick="if(_pedData.cl){pedTab=2;drawPedInline()}else{showT('Completa Pedido','error')}">Detalle</button><button class="${pedTab===3?"act":""}" onclick="if(pedLineas.length){pedTab=3;drawPedInline()}else{showT('Agrega productos','error')}">Finalizar</button></div>`;let ct="";
 if(pedTab===1){ct=`<div class="tab-body">
 <div style="background:${isVD?"#e3f2fd":"#e8f5e9"};padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;color:${isVD?"#1565c0":"#2e7d32"}">✓ Visita registrada — <strong>${isVD?"🚚 Venta directa":"📋 Pedido normal"}</strong> para ${clName}</div>
 <div class="grid g2"><div class="field"><label><span class="req">* </span>Cliente</label><div id="ss-ped-cl"></div></div><div class="field"><label>Punto de Venta</label><select id="pd-suc"><option value="">Sede principal</option></select></div></div>
-<div class="grid g3"><div class="field"><label>Vendedor</label><input value="${U.nombre_display}" disabled style="opacity:.6;background:#f5f5f5"></div><div class="field"><label>Cond. Pago</label><select id="pd-cp"><option>CONTADO</option><option>1001 - 15 DIAS</option><option>1002 - 30 DIAS</option></select></div><div class="field"><label>Fecha Entrega</label><input type="date" id="pd-fe" value="${_pedData.fe||today()}"></div></div>
+<div class="grid g3"><div class="field"><label>Vendedor</label><input value="${U.nombre_display}" disabled style="opacity:.6;background:#f5f5f5"></div><div class="field"><label>Cond. Pago</label><select id="pd-cp">${cpOpts}</select></div><div class="field"><label>Fecha Entrega</label><input type="date" id="pd-fe" value="${_pedData.fe||today()}"></div></div>
 <div class="field"><label>Observaciones</label><textarea id="pd-obs">${_pedData.obs||""}</textarea></div>
 <div class="fa"><button class="btn bp" onclick="goTab2()">Siguiente → Detalle</button></div></div>`;
 setTimeout(()=>{_ssPedCl=ssCreate("ss-ped-cl",clOpts,"Buscar...",v=>{_pedData.cl=v;ldSuc()});_ssPedCl.setValue(selCl);ldSuc()},30);
