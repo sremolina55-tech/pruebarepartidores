@@ -1877,88 +1877,150 @@ async function saveAct(eid){
 }
 
 // ═══ RUTAS ═══
-let _rutasCls=[],_rutasActs=[],_rutasCiudad="",_rutasQ="";
+let _rutaData=[],_rutaClNms=new Set(),_rutaTab='hoy',_rutaFecha='',_rutaQ='';
+function limpObsRuta(o){return(o||'').replace(/\[FOTO_EF:[^\]]+\]/g,'').replace(/\[PDV-[^\]]+\]/g,'').replace(/\[EDITADO[^\]]+\]/g,'').replace(/\[OC FACTURADA:[^\]]+\]/g,'').trim()}
 async function renderRutas(){
-  $("mc").innerHTML=`<div class="topbar"><h2>🚚 Rutas</h2><button class="btn bs bsm" onclick="renderRutas()">🔄</button></div><div style="text-align:center;padding:40px;color:var(--muted)">Cargando clientes...</div>`;
+  $("mc").innerHTML=`<div class="topbar"><h2>🚚 Rutas</h2><button class="btn bs bsm" onclick="renderRutas()">🔄</button></div><div style="padding:40px;text-align:center;color:var(--muted)">Cargando...</div>`;
+  if(!document.getElementById('rt-modal')){
+    const m=document.createElement('div');m.id='rt-modal';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;align-items:flex-end;justify-content:center';
+    m.onclick=function(e){if(e.target===m)cerrarRtModal()};
+    m.innerHTML=`<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 40px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto"><div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px"></div><div id="rt-m-consec" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--accent);margin-bottom:4px"></div><div id="rt-m-cliente" style="font-size:16px;font-weight:600;margin-bottom:2px"></div><div id="rt-m-sucursal" style="font-size:12px;color:var(--muted);margin-bottom:14px"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div style="background:var(--bg);border-radius:10px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px">Fecha</div><div id="rt-m-fecha" style="font-size:14px;font-weight:600"></div></div><div style="background:var(--bg);border-radius:10px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px">Repartidor</div><div id="rt-m-rep" style="font-size:14px;font-weight:600"></div></div><div style="background:var(--bg);border-radius:10px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px">Cant. facturada</div><div id="rt-m-fac" style="font-size:14px;font-weight:600"></div></div><div style="background:var(--bg);border-radius:10px;padding:10px 12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px">Cant. recibida</div><div id="rt-m-rec" style="font-size:14px;font-weight:600"></div></div></div><div id="rt-m-estado" style="border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px"></div><div id="rt-m-pago" style="display:none;margin-bottom:14px"></div><div id="rt-m-obs" style="display:none;margin-bottom:14px"></div><div id="rt-m-nota" style="display:none;margin-bottom:14px"></div><div id="rt-m-foto" style="display:none;margin-bottom:14px"></div><button onclick="cerrarRtModal()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:13px;font-size:15px;font-weight:600;font-family:var(--ff);cursor:pointer;color:var(--muted)">Cerrar</button></div>`;
+    document.body.appendChild(m);
+  }
   try{
-    const [cls,acts]=await Promise.all([
-      api("crm_clientes","GET",null,"?order=ciudad,nombre&select=*,crm_vendedores(nombre),crm_tipologias!crm_clientes_tipologia_id_fkey(nombre)"+vF()),
-      api("crm_actividades","GET",null,"?estado=eq.pendiente&order=fecha,hora_inicio&select=id,cliente_id,tipo,fecha,hora_inicio,titulo"+vF())
+    const misCls=await api("crm_clientes","GET",null,"?select=nombre"+vF());
+    _rutaClNms=new Set((misCls||[]).map(c=>(c.nombre||"").toLowerCase().trim()));
+    const [facturas,clientes,repartidores,entregas,novedades,notas]=await Promise.all([
+      api("facturas","GET",null,"?select=id,consecutivo,fecha,estado,kg_facturados,sucursal,cliente_id,repartidor_id&order=consecutivo"),
+      api("clientes","GET",null,"?select=id,nombre"),
+      api("repartidores","GET",null,"?select=id,nombre"),
+      api("entregas","GET",null,"?select=id,factura_id,kg_recibidos,metodo_pago,monto_efectivo,monto_transferencia,observaciones,registrado_en,foto_url&order=registrado_en.desc&limit=5000"),
+      api("novedades","GET",null,"?select=id,entrega_id,tipo,diferencia,estado"),
+      api("notas","GET",null,"?select=id,novedad_id,tipo_nota,numero_nota,monto,pdf_url"),
     ]);
-    _rutasCls=cls||[];_rutasActs=acts||[];
-    const ciudades=[...new Set(_rutasCls.map(c=>c.ciudad||"Sin ciudad").filter(Boolean))].sort();
-    _rutasCiudad="";_rutasQ="";
-    const cityOpts=ciudades.map(c=>`<option value="${c}">${c}</option>`).join("");
-    $("mc").innerHTML=`
-<div class="topbar"><h2>🚚 Rutas</h2>
-  <div style="display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap">
-    <input id="ruta-q" placeholder="🔍 Cliente..." style="width:160px" oninput="_rutasQ=this.value;renderRutasCards()">
-    <select id="ruta-city" onchange="_rutasCiudad=this.value;renderRutasCards()" style="font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff">
-      <option value="">Todas las ciudades</option>${cityOpts}
-    </select>
-    <button class="btn bs bsm" onclick="renderRutas()">🔄</button>
-  </div>
-</div>
-<div style="margin-bottom:8px;font-size:12px;color:var(--muted)">${_rutasCls.length} cliente${_rutasCls.length!==1?"s":""} · ${_rutasActs.length} actividad${_rutasActs.length!==1?"es":""} pendiente${_rutasActs.length!==1?"s":""}</div>
-<div id="rutas-content"></div>`;
-    renderRutasCards();
+    const cMap={};(clientes||[]).forEach(c=>cMap[c.id]=c.nombre);
+    const rMap={};(repartidores||[]).forEach(r=>rMap[r.id]=r.nombre);
+    const eMap={};(entregas||[]).forEach(e=>{if(!eMap[e.factura_id])eMap[e.factura_id]=e;});
+    const novMap={};(novedades||[]).forEach(n=>novMap[n.entrega_id]=n);
+    const notaMap={};(notas||[]).forEach(n=>notaMap[n.novedad_id]=n);
+    _rutaData=(facturas||[]).map(f=>{
+      const nom=cMap[f.cliente_id]||'';
+      if(!nom||(_rutaClNms.size>0&&!_rutaClNms.has(nom.toLowerCase().trim())))return null;
+      const e=eMap[f.id];const nov=e?novMap[e.id]:null;const nota=nov?notaMap[nov.id]:null;
+      let estado=!e?(f.estado==='pendiente'?'pendiente':'ruta'):'entregada';
+      if(e&&e.metodo_pago==='devolucion')estado='devuelta';
+      if(e&&f.estado==='con_novedad')estado='novedad';
+      return{id:f.id,consecutivo:f.consecutivo,fecha:f.fecha,cliente:nom,sucursal:f.sucursal||null,
+        repartidor:rMap[f.repartidor_id]||'-',kgFac:f.kg_facturados,kgRec:e?e.kg_recibidos:null,
+        metodo:e?e.metodo_pago:null,mEf:e?e.monto_efectivo:null,mTr:e?e.monto_transferencia:null,
+        obs:e?limpObsRuta(e.observaciones):null,fotoUrl:e?e.foto_url:null,
+        hora:e&&e.registrado_en?new Date(e.registrado_en).toTimeString().slice(0,5):null,
+        estado,novTipo:nov?nov.tipo:null,novDiff:nov?nov.diferencia:null,
+        notaNum:nota?nota.numero_nota:null,notaTipo:nota?nota.tipo_nota:null,
+        notaMonto:nota?nota.monto:null,notaPdf:nota?nota.pdf_url:null};
+    }).filter(Boolean);
+    _rutaTab='hoy';_rutaFecha='';_rutaQ='';
+    renderRutasUI();
   }catch(e){showT(e.message,"error")}
 }
-function renderRutasCards(){
-  const q=(_rutasQ||"").toLowerCase();
-  const city=_rutasCiudad;
-  let filtered=_rutasCls.filter(c=>{
-    if(city&&(c.ciudad||"Sin ciudad")!==city)return false;
-    if(q&&!(c.nombre||"").toLowerCase().includes(q)&&!(c.codigo||"").toLowerCase().includes(q)&&!(c.direccion||"").toLowerCase().includes(q))return false;
-    return true;
-  });
-  const actsMap={};
-  _rutasActs.forEach(a=>{if(!actsMap[a.cliente_id])actsMap[a.cliente_id]=[];actsMap[a.cliente_id].push(a)});
-  const grouped={};
-  filtered.forEach(c=>{const cd=c.ciudad||"Sin ciudad";if(!grouped[cd])grouped[cd]=[];grouped[cd].push(c)});
-  const container=$("rutas-content");if(!container)return;
-  if(!filtered.length){container.innerHTML=`<div class="empty" style="padding:40px 0">Sin clientes para esta búsqueda</div>`;return}
-  const totalActs=filtered.reduce((s,c)=>(s+(actsMap[c.id]?.length||0)),0);
-  let html=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px">
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--accent)">${filtered.length}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Clientes</div></div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#f57c00">${totalActs}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Actividades pendientes</div></div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#388e3c">${Object.keys(grouped).length}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Ciudades</div></div>
-  </div>`;
-  Object.keys(grouped).sort().forEach(cd=>{
-    const cls=grouped[cd];
-    html+=`<div style="margin-bottom:20px">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:8px;padding:6px 0;border-bottom:2px solid var(--border)">📍 ${cd} <span style="font-weight:400;font-size:10px">(${cls.length})</span></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">`;
-    cls.forEach(c=>{
-      const pendActs=actsMap[c.id]||[];
-      const nextAct=pendActs[0];
-      const hasPend=pendActs.length>0;
-      const mapQ=encodeURIComponent((c.direccion||c.nombre||"")+(c.ciudad?", "+c.ciudad:""));
-      const actChip=hasPend?`<span style="background:#fff3e0;color:#e65100;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600">📅 ${pendActs.length} pendiente${pendActs.length>1?"s":""}</span>`:`<span style="background:#e8f5e9;color:#388e3c;font-size:10px;padding:2px 7px;border-radius:10px">✓ Al día</span>`;
-      const nextActLine=nextAct?`<div style="font-size:11px;color:#f57c00;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">↳ ${ACT_TIPOS.find(t=>t.v===nextAct.tipo)?.ic||"📋"} ${nextAct.fecha}${nextAct.hora_inicio?" "+nextAct.hora_inicio.slice(0,5):""} — ${nextAct.titulo||nextAct.tipo}</div>`:"";
-      const tipNom=c.crm_tipologias?.nombre||"";
-      const vendNom=c.crm_vendedores?.nombre||"";
-      html+=`<div style="background:var(--bg2);border:1px solid ${hasPend?"#ffcc80":"var(--border)"};border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 3px 12px rgba(0,0,0,.1)'" onmouseleave="this.style.boxShadow=''">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px">
-          <div style="font-weight:700;font-size:14px;line-height:1.3;flex:1" onclick="eCl('${c.id}')" title="Ver cliente">${c.nombre}</div>
-          ${actChip}
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${c.codigo||"—"}${tipNom?" · "+tipNom:""}${vendNom&&U.rol!=="vendedor"?" · "+vendNom:""}</div>
-        ${c.direccion?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">🏠 ${c.direccion}</div>`:""}
-        ${c.telefono||c.celular?`<div style="font-size:12px;color:var(--muted)">📞 ${c.telefono||c.celular}</div>`:""}
-        ${nextActLine}
-        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-          <button class="btn bp bsm" onclick="event.stopPropagation();eCl('${c.id}')" style="font-size:11px">Ver</button>
-          <button class="btn bs bsm" onclick="event.stopPropagation();renderVisForm();setTimeout(()=>{const s=$('vf-cl');if(s){s.value='${c.id}';s.dispatchEvent(new Event('change'))}},200)" style="font-size:11px">📍 Visita</button>
-          <button class="btn bs bsm" onclick="event.stopPropagation();renderActForm(null,null,'${c.id}','')" style="font-size:11px">📅 Actividad</button>
-          ${c.direccion?`<a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" class="btn bs bsm" style="font-size:11px;text-decoration:none">🗺️ Maps</a>`:""}
-        </div>
-      </div>`;
-    });
-    html+=`</div></div>`;
-  });
-  container.innerHTML=html;
+function renderRutasUI(){
+  const hoy=today();
+  const fechas=[...new Set(_rutaData.map(r=>r.fecha))].sort().reverse().slice(0,14);
+  const mkChip=(val,lbl)=>`<div onclick="_rutaFecha='${val}';renderRutasUI()" style="background:${_rutaFecha===val?'var(--accent)':'#fff'};border:1.5px solid ${_rutaFecha===val?'var(--accent)':'var(--border)'};color:${_rutaFecha===val?'#fff':'var(--text2)'};border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">${lbl}</div>`;
+  const chips=mkChip('','Todas')+fechas.map(f=>mkChip(f,f===hoy?'Hoy':f)).join('');
+  const col=v=>_rutaTab===v?'var(--accent)':'var(--muted)';
+  const brd=v=>_rutaTab===v?'3px solid var(--accent)':'3px solid transparent';
+  $("mc").innerHTML=`
+<div class="topbar" style="flex-direction:column;align-items:stretch;padding-bottom:0;gap:0">
+  <div style="display:flex;align-items:center;margin-bottom:10px"><h2 style="margin:0">🚚 Rutas</h2><button class="btn bs bsm" style="margin-left:auto" onclick="renderRutas()">🔄</button></div>
+  <div style="display:flex;border-top:1px solid var(--border)">
+    <div onclick="setRutaTab('hoy')" style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:600;cursor:pointer;border-bottom:${brd('hoy')};color:${col('hoy')}">Hoy</div>
+    <div onclick="setRutaTab('buscar')" style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:600;cursor:pointer;border-bottom:${brd('buscar')};color:${col('buscar')}">Buscar</div>
+  </div>
+</div>
+<div style="padding:16px 0 80px">
+  <div id="rt-v-hoy" style="display:${_rutaTab==='hoy'?'block':'none'}"><div id="rt-stats"></div><div id="rt-l-hoy"></div></div>
+  <div id="rt-v-buscar" style="display:${_rutaTab==='buscar'?'block':'none'}">
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:14px">
+      <span style="color:var(--muted);font-size:16px">⊕</span>
+      <input id="rt-sq" type="text" placeholder="Cliente o número de factura..." style="flex:1;border:none;outline:none;font-size:14px;font-family:var(--ff);color:var(--text);background:none" oninput="_rutaQ=this.value;renderRutasBuscar()">
+      <button onclick="$('rt-sq').value='';_rutaQ='';renderRutasBuscar()" style="background:none;border:none;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none">${chips}</div>
+    <div id="rt-count" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
+    <div id="rt-l-buscar"></div>
+  </div>
+</div>`;
+  if(_rutaTab==='hoy')renderRutasHoy();else renderRutasBuscar();
 }
+function setRutaTab(t){_rutaTab=t;renderRutasUI()}
+const RT_COL={ruta:'#c87820',entregada:'#4a9e6a',novedad:'#d44050',devuelta:'#888',pendiente:'#aaa'};
+const RT_LBL={ruta:'En ruta',entregada:'Entregada',novedad:'Novedad',devuelta:'Devuelta',pendiente:'Sin despachar'};
+function renderRutasHoy(){
+  const hoy=today(),rows=_rutaData.filter(r=>r.fecha===hoy);
+  const s=$("rt-stats");if(!s)return;
+  const enR=rows.filter(r=>r.estado==='ruta'||r.estado==='pendiente').length;
+  const ok=rows.filter(r=>r.estado==='entregada'||r.estado==='devuelta').length;
+  const nov=rows.filter(r=>r.estado==='novedad').length;
+  s.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--accent)">${rows.length}</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:4px">Total</div></div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#c87820">${enR}</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:4px">En ruta</div></div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#4a9e6a">${ok}</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:4px">Entregadas</div></div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center"><div style="font-size:22px;font-weight:700;color:#d44050">${nov}</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:4px">Novedades</div></div>
+  </div>`;
+  renderRutasLista('rt-l-hoy',rows);
+}
+function renderRutasBuscar(){
+  let rows=_rutaData;
+  if(_rutaFecha)rows=rows.filter(r=>r.fecha===_rutaFecha);
+  if(_rutaQ&&_rutaQ.trim()){const ql=_rutaQ.trim().toLowerCase();rows=rows.filter(r=>r.cliente.toLowerCase().includes(ql)||String(r.consecutivo).toLowerCase().includes(ql)||(r.sucursal&&r.sucursal.toLowerCase().includes(ql)));}
+  const ct=$("rt-count");if(ct)ct.textContent=rows.length+' factura'+(rows.length!==1?'s':'');
+  renderRutasLista('rt-l-buscar',rows);
+}
+function renderRutasLista(id,rows){
+  const el=$(id);if(!el)return;el._rows=rows;
+  if(!rows.length){el.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">🔍</div><div style="font-size:14px">Sin resultados</div></div>`;return}
+  el.innerHTML=rows.map((r,i)=>{
+    const col=RT_COL[r.estado]||'#aaa',lbl=RT_LBL[r.estado]||r.estado;
+    return`<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;border-left:4px solid ${col};cursor:pointer" onclick="abrirRtModal(${i},'${id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+        <span style="font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--accent)">#${r.consecutivo}</span>
+        <span style="font-size:10px;padding:3px 8px;border-radius:20px;font-weight:700;background:${col}22;color:${col}">${lbl}</span>
+      </div>
+      <div style="font-size:14px;font-weight:600">${r.cliente}</div>
+      ${r.sucursal&&r.sucursal!==r.cliente?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${r.sucursal}</div>`:''}
+      <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted)">🚚 <span style="color:var(--text2);font-weight:500">${r.repartidor}</span></span>
+        <span style="font-size:11px;color:var(--muted)">📅 <span style="color:var(--text2);font-weight:500">${r.fecha}</span></span>
+        ${r.hora?`<span style="font-size:11px;color:var(--muted)">⏱ <span style="color:var(--text2);font-weight:500">${r.hora}</span></span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function abrirRtModal(idx,cid){
+  const el=$(cid);if(!el||!el._rows)return;const r=el._rows[idx];if(!r)return;
+  const m=document.getElementById('rt-modal');if(!m)return;
+  $('rt-m-consec').textContent='#'+r.consecutivo;$('rt-m-cliente').textContent=r.cliente;
+  $('rt-m-sucursal').textContent=r.sucursal&&r.sucursal!==r.cliente?r.sucursal:'';
+  $('rt-m-fecha').textContent=r.fecha;$('rt-m-rep').textContent=r.repartidor;
+  $('rt-m-fac').textContent=(r.kgFac||'-')+' uds';$('rt-m-rec').textContent=r.kgRec!=null?(r.kgRec+' uds'):'-';
+  const ests={ruta:{ic:'🚚',txt:'En ruta',sub:'El repartidor aún no registra la entrega'},entregada:{ic:'✅',txt:'Entregada',sub:r.hora?'Registrada a las '+r.hora:'Confirmada'},novedad:{ic:'⚠️',txt:'Con novedad',sub:r.novDiff?'Diferencia: '+(r.novDiff>0?'+':'')+r.novDiff+' uds':'Pendiente'},devuelta:{ic:'↩️',txt:'Devuelta',sub:'Devuelta al punto'},pendiente:{ic:'📦',txt:'Sin despachar',sub:'Pendiente de salir'}};
+  const est=ests[r.estado]||ests.pendiente,col=RT_COL[r.estado]||'#aaa';
+  $('rt-m-estado').style.cssText='border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;background:'+col+'22;border:1px solid '+col+'44';
+  $('rt-m-estado').innerHTML=`<div style="font-size:24px">${est.ic}</div><div><div style="font-size:14px;font-weight:700">${est.txt}</div><div style="font-size:11px;margin-top:2px;opacity:.8">${est.sub}</div></div>`;
+  const pEl=$('rt-m-pago'),parts=[];
+  if(r.metodo&&r.metodo!=='devolucion'){const mm={efectivo:'Efectivo',transferencia:'Transferencia',cartera:'Cartera',parcial:'Pago combinado'};parts.push(mm[r.metodo]||r.metodo);if(r.mEf)parts.push('Efectivo: $'+Math.round(r.mEf).toLocaleString('es-CO'));if(r.mTr)parts.push('Transferencia: $'+Math.round(r.mTr).toLocaleString('es-CO'));}
+  if(parts.length){pEl.style.display='block';pEl.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">Pago</div><div style="background:var(--bg);border-radius:10px;padding:12px;font-size:13px;color:var(--text2);white-space:pre">${parts.join('\n')}</div>`;}else pEl.style.display='none';
+  const oEl=$('rt-m-obs');
+  if(r.obs&&r.obs.trim()){oEl.style.display='block';oEl.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">Observaciones</div><div style="background:var(--bg);border-radius:10px;padding:12px;font-size:13px;color:var(--text2)">${r.obs}</div>`;}else oEl.style.display='none';
+  const nEl=$('rt-m-nota');
+  if(r.notaNum){const tl={nota_credito:'Nota crédito',nota_debito:'Nota débito',novedad_pdv:'Novedad PDV'};nEl.style.display='block';nEl.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">Nota</div><div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:10px;padding:12px"><div style="font-size:15px;font-weight:700;color:#1565c0">${r.notaNum}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${(tl[r.notaTipo]||r.notaTipo||'')+(r.notaMonto?' · $'+Math.round(r.notaMonto).toLocaleString('es-CO'):'')}</div>${r.notaPdf?'<button onclick="window.open(\''+r.notaPdf+'\',\'_blank\')" style="margin-top:8px;width:100%;background:#1976d2;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer">⬇️ Descargar PDF</button>':''}</div>`;}else nEl.style.display='none';
+  const fEl=$('rt-m-foto');
+  if(r.fotoUrl){fEl.style.display='block';fEl.innerHTML=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">Foto factura</div><img src="${r.fotoUrl}" style="width:100%;border-radius:12px;cursor:pointer" onclick="window.open('${r.fotoUrl}','_blank')"><div style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px">Toca para ampliar</div>`;}else fEl.style.display='none';
+  m.style.display='flex';
+}
+function cerrarRtModal(){const m=document.getElementById('rt-modal');if(m)m.style.display='none'}
 </script>
 </body>
 </html>
