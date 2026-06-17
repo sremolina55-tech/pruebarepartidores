@@ -27,8 +27,8 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(23
 .app{display:none;min-height:100vh}.app.show{display:flex}
 .mh{display:none;position:fixed;top:0;left:0;right:0;z-index:20;background:var(--accent);padding:10px 14px;align-items:center;justify-content:space-between}
 .mh h1{font-size:16px;font-weight:800;color:#fff}.mh .ub{font-size:10px;color:#fff;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:20px}
-.mn{display:none;position:fixed;bottom:0;left:0;right:0;z-index:20;background:#fff;border-top:1px solid var(--border);padding:5px 0 env(safe-area-inset-bottom,5px);justify-content:space-around;box-shadow:0 -2px 10px rgba(0,0,0,.05)}
-.mn button{background:none;border:none;color:var(--muted);font-size:9px;font-family:var(--ff);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px 6px}.mn button.act{color:var(--accent)}.mn .ic{font-size:16px}
+.mn{display:none;position:fixed;bottom:0;left:0;right:0;z-index:20;background:#fff;border-top:1px solid var(--border);padding:5px 0 env(safe-area-inset-bottom,5px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;box-shadow:0 -2px 10px rgba(0,0,0,.05)}.mn::-webkit-scrollbar{display:none}
+.mn button{background:none;border:none;color:var(--muted);font-size:9px;font-family:var(--ff);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px 8px;min-width:58px;flex-shrink:0}.mn button.act{color:var(--accent)}.mn .ic{font-size:16px}
 .sb{width:200px;background:var(--accent);display:flex;flex-direction:column;padding:20px 0;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:10}
 .sb .logo{padding:0 18px 18px;border-bottom:1px solid rgba(255,255,255,.2)}.sb .logo h1{font-size:20px;font-weight:800;color:#fff;margin:0}.sb .logo>p{font-size:9px;color:rgba(255,255,255,.7);margin-top:2px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
 .sb .ui{padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.2);font-size:11px;color:#fff}.sb .ui .nm{font-weight:700}.sb .ui .rl{color:rgba(255,255,255,.7);font-size:10px;margin-top:2px}
@@ -180,6 +180,8 @@ const MOTIVOS=["Cliente tiene stock","No desea producto","Cerrado","No atendiero
 const TIPOSDOC=[{v:"13",l:"13 - Cédula de Ciudadanía"},{v:"22",l:"22 - Cédula de Extranjería"},{v:"31",l:"31 - NIT"},{v:"47",l:"47 - Permiso Protección Temporal (PPT)"},{v:"46",l:"46 - Carnet Diplomático"},{v:"41",l:"41 - Pasaporte"},{v:"42",l:"42 - Documento Identificación Extranjero"},{v:"11",l:"11 - Registro Civil"},{v:"12",l:"12 - Tarjeta de Identidad"},{v:"21",l:"21 - Tarjeta de Extranjería"},{v:"50",l:"50 - NIT de Otro País"},{v:"91",l:"91 - NUIP"}];
 const CAN_VD=["LID003","VEN005"];
 const CAN_PR=["LID003","VEN005"];
+const TAT_TEAM=["LID003","VEN002","VEN005","VEN010","VEN011"];
+const HORECA_PRODS=new Set(["3","4","6","9","10","22","51","52","53","54","55","56","57","58","59","60","61","62","63","64","66","67","70","71","72","76","83","101","102","103","152","153","202","203","204","205","206","207","208","211","235","251","253","254","255","256","257","258","259","263","264","268","270","271","280","299","300","302","303","304","305","307","310","311","312","313","314","315","316","317","318","320","321","322","323","325","327","328","333","352","353","354","355","356","357","358","359","360","361","362","363","364","365","367","368","369","370","372","373","374","400","404","405","406","407","408","409","410","411","412","413","414","419","420","421","500","501","502","503","504","505","506","508","510","512","524","525","528","529","530","531","532","533","534","535","536","537","538","540","541","542","543","544","545","546","547","602","604","605","607","611","613","615","617","618","619","620","621","622","623","624","625","626","627","628","629","630","631","632","633","634","635","636","637","642","643","645","700","701","702","703","704","705","706","707","708","709","710","711","712","713","714","715","716","718","720","721","722","723","724","725","727","728","729","730","731","732","734","735","736","737","738","739","740","741","742","743","744","745","746","747","748","750","752","753","755","756","757","758","759","760","761","762","763","764","766","768","769","770","771","772","773","774","775","776","777","778","779","780","781","782","783","784","785","787","788","789","790","791","792","795","797","798","801","802","822","906","1000","1043","1180","1801"]);
 async function api(t,m="GET",b=null,q=""){const h={apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"};if(m==="POST"||m==="PATCH")h.Prefer="return=representation";if(m==="DELETE")h.Prefer="";const o={method:m,headers:h};if(b)o.body=JSON.stringify(b);const r=await fetch(SB+"/rest/v1/"+t+q,o);if(!r.ok){const errText=await r.text();throw new Error(errText)}const x=await r.text();return x?JSON.parse(x):null}
 function $(id){return document.getElementById(id)}
 function fmt(n){return new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",minimumFractionDigits:0}).format(n)}
@@ -206,12 +208,13 @@ function buildNav(){
     {id:"g-clientes",ic:"👥",l:"Clientes",subs:[{id:"clientes",l:"Ver clientes"},{id:"nuevo-cliente",l:"Nuevo cliente"}]},
     {id:"g-prospectos",ic:"🎯",l:"Prospectos",subs:[{id:"prospectos",l:"Ver prospectos"},{id:"nuevo-prospecto",l:"Nuevo prospecto"}]},
     {single:true,id:"agenda",ic:"📅",l:"Agenda"},
+    {single:true,id:"rutas",ic:"🚚",l:"Rutas"},
   ];
   $("snav").innerHTML=groups.map(g=>{
     if(g.single)return`<button onclick="showView('${g.id}')" id="nav-${g.id}">${g.ic} <span>${g.l}</span></button>`;
     return`<div id="${g.id}"><button class="grp-hdr" onclick="toggleGrp('${g.id}')">${g.ic} <span>${g.l}</span><span class="arr">▼</span></button><div class="grp-body" id="${g.id}-body">${g.subs.map(s=>`<button onclick="showView('${s.id}')" id="nav-${s.id}">· <span>${s.l}</span></button>`).join("")}</div></div>`;
   }).join("");
-  const mi=[{id:"dashboard",ic:"◆",l:"Hoy"},{id:"agenda",ic:"📅",l:"Agenda"},{id:"nueva-visita",ic:"📍",l:"Visita"},{id:"pedidos",ic:"📦",l:"Pedidos"},{id:"clientes",ic:"👥",l:"Clientes"},{id:"prospectos",ic:"🎯",l:"Prospectos"}];
+  const mi=[{id:"dashboard",ic:"◆",l:"Hoy"},{id:"agenda",ic:"📅",l:"Agenda"},{id:"nueva-visita",ic:"📍",l:"Visita"},{id:"pedidos",ic:"📦",l:"Pedidos"},{id:"clientes",ic:"👥",l:"Clientes"},{id:"prospectos",ic:"🎯",l:"Prospectos"},{id:"rutas",ic:"🚚",l:"Rutas"}];
   $("mnav").innerHTML=mi.map(i=>`<button onclick="showView('${i.id}')" id="mn-${i.id}"><span class="ic">${i.ic}</span>${i.l}</button>`).join("")+`<button onclick="logout()"><span class="ic">⏻</span>Salir</button>`;
   if(U.rol==="admin"){document.querySelector(".sb .ft").innerHTML='<button onclick="logout()">Salir</button><button onclick="actualizarUrlServicio()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:11px;font-family:var(--ff);margin-left:8px">🔧 URL API</button>'}
 }
@@ -234,7 +237,7 @@ function showView(v){
     if(body&&!body.classList.contains("open")){body.classList.add("open");if(hdr)hdr.classList.add("open")}
     if(hdr)hdr.classList.add("grp-act");
   }
-  const V={dashboard:renderDash,informe:renderInforme,"nueva-visita":renderVisForm,visitas:renderVisList,pedidos:renderPedList,clientes:renderClList,"nuevo-cliente":()=>renderClForm(),exportar:renderExport,prospectos:renderProspList,"nuevo-prospecto":()=>renderProspForm(),mapa:renderMapa,agenda:renderAgenda};
+  const V={dashboard:renderDash,informe:renderInforme,"nueva-visita":renderVisForm,visitas:renderVisList,pedidos:renderPedList,clientes:renderClList,"nuevo-cliente":()=>renderClForm(),exportar:renderExport,prospectos:renderProspList,"nuevo-prospecto":()=>renderProspForm(),mapa:renderMapa,agenda:renderAgenda,rutas:renderRutas};
   if(V[v])V[v]();window.scrollTo(0,0);
 }
 function vF(){if(U.rol==="vendedor")return"&vendedor_id=eq."+U.vendedor_id;if(U.rol==="lider"&&supIds.length)return"&vendedor_id=in.("+supIds.join(",")+")";return""}
@@ -402,33 +405,30 @@ pedLineas=[];pedTab=1;_pedData={cl:clId,tipo:_tipoPed};drawPedInline()}catch(e){
 // ═══ PEDIDO INLINE ═══
 let _ssPedCl=null;
 function drawPedInline(){const selCl=_pedData.cl||"";const clData=clientes.find(c=>c.id===selCl);const clName=clData?.nombre||"";const clOpts=clientes.map(c=>({value:c.id,label:c.codigo+". "+c.nombre}));
-const isVD=_pedData.tipo==="vd";
+const isVD=_pedData.tipo==="vd";const isTAT=TAT_TEAM.includes(U.usuario)||U.rol==="admin";
 const th=`<div class="tabs"><button class="${pedTab===1?"act":""}" onclick="pedTab=1;drawPedInline()">Pedido</button><button class="${pedTab===2?"act":""}" onclick="if(_pedData.cl){pedTab=2;drawPedInline()}else{showT('Completa Pedido','error')}">Detalle</button><button class="${pedTab===3?"act":""}" onclick="if(pedLineas.length){pedTab=3;drawPedInline()}else{showT('Agrega productos','error')}">Finalizar</button></div>`;let ct="";
 if(pedTab===1){ct=`<div class="tab-body">
 <div style="background:${isVD?"#e3f2fd":"#e8f5e9"};padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;color:${isVD?"#1565c0":"#2e7d32"}">✓ Visita registrada — <strong>${isVD?"🚚 Venta directa":"📋 Pedido normal"}</strong> para ${clName}</div>
 <div class="grid g2"><div class="field"><label><span class="req">* </span>Cliente</label><div id="ss-ped-cl"></div></div><div class="field"><label>Punto de Venta</label><select id="pd-suc"><option value="">Sede principal</option></select></div></div>
-<div class="grid g2"><div class="field"><label>Vendedor</label><input value="${U.nombre_display}" disabled style="opacity:.6;background:#f5f5f5"></div><div class="field"><label>Fecha Entrega</label><input type="date" id="pd-fe" value="${_pedData.fe||today()}"></div></div>
+<div class="grid g${isTAT?2:3}"><div class="field"><label>Vendedor</label><input value="${U.nombre_display}" disabled style="opacity:.6;background:#f5f5f5"></div>${!isTAT?`<div class="field"><label><span class="req">* </span>Planta</label><select id="pd-op"><option value="">Selecciona...</option><option value="2100" ${_pedData.op==="2100"?"selected":""}>2100 – Galán</option><option value="2101" ${_pedData.op==="2101"?"selected":""}>2101 – BLE</option></select></div>`:""}<div class="field"><label>Fecha Entrega</label><input type="date" id="pd-fe" value="${_pedData.fe||today()}"></div></div>
 <div class="field"><label>Observaciones</label><textarea id="pd-obs">${_pedData.obs||""}</textarea></div>
 <div class="fa"><button class="btn bp" onclick="goTab2()">Siguiente → Detalle</button></div></div>`;
 setTimeout(()=>{_ssPedCl=ssCreate("ss-ped-cl",clOpts,"Buscar...",v=>{_pedData.cl=v;ldSuc()});_ssPedCl.setValue(selCl);ldSuc()},30);
-}else if(pedTab===2){const sub=pedLineas.reduce((s,l)=>s+l.total,0);const canPr=CAN_PR.includes(U.usuario);const rows=pedLineas.map((l,i)=>`<tr><td style="font-weight:600">${l.codigo}</td><td>${l.nombre}</td><td style="color:var(--muted)">${l.unidad}</td><td><input type="number" min="1" value="${l.qty}" onchange="uLn(${i},this.value)" style="width:60px"></td><td style="text-align:right">${canPr?`<input type="number" min="0" value="${l.valor}" onchange="uPrc(${i},this.value)" style="width:85px;text-align:right;padding:5px 6px;border:1px solid var(--border);border-radius:4px">`:`${fmtN(l.valor)}`}</td><td><input type="number" min="0" max="100" value="${l.dscPct||0}" onchange="uDsc(${i},this.value)" style="width:55px"></td><td style="text-align:right;font-weight:700">${fmtN(l.total)}</td><td style="text-align:center"><button onclick="rLn(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;font-weight:800">✕</button></td></tr>`).join("");
+}else if(pedTab===2){const sub=pedLineas.reduce((s,l)=>s+l.total,0);const canPr=CAN_PR.includes(U.usuario);const rows=pedLineas.map((l,i)=>`<tr><td style="font-weight:600">${l.codigo}</td><td>${l.nombre}</td><td style="color:var(--muted)">${l.unidad}</td><td><input type="number" min="1" value="${l.qty}" onchange="uLn(${i},this.value)" style="width:60px"></td>${isTAT?`<td style="text-align:right">${canPr?`<input type="number" min="0" value="${l.valor}" onchange="uPrc(${i},this.value)" style="width:85px;text-align:right;padding:5px 6px;border:1px solid var(--border);border-radius:4px">`:`${fmtN(l.valor)}`}</td><td><input type="number" min="0" max="100" value="${l.dscPct||0}" onchange="uDsc(${i},this.value)" style="width:55px"></td><td style="text-align:right;font-weight:700">${fmtN(l.total)}</td>`:""}<td style="text-align:center"><button onclick="rLn(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;font-weight:800">✕</button></td></tr>`).join("");
 ct=`<div class="tab-body"><div style="margin-bottom:16px"><label style="font-size:13px;font-weight:700;color:var(--accent)">Producto:</label><div class="psr" style="margin-top:8px"><input id="ps-i" placeholder="🔍 Buscar producto..." oninput="sP(this.value)" autocomplete="off" style="font-size:14px;padding:12px 14px"><div class="psr-r" id="ps-r"></div></div></div>
-<div style="overflow-x:auto"><table class="det-table"><thead><tr><th>Prod</th><th>Descripción</th><th>Uni</th><th>Cant</th><th>Vr.Unit</th><th>Desc%</th><th>Total</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" class="empty">Busca y agrega</td></tr>'}</tbody></table></div>
-<div style="text-align:right;margin-top:12px;font-size:16px;font-weight:800;color:var(--accent)">Subtotal: ${fmt(sub)}</div>
+<div style="overflow-x:auto"><table class="det-table"><thead><tr><th>Prod</th><th>Descripción</th><th>Uni</th><th>Cant</th>${isTAT?`<th>Vr.Unit</th><th>Desc%</th><th>Total</th>`:""}<th></th></tr></thead><tbody>${rows||`<tr><td colspan="${isTAT?8:5}" class="empty">Busca y agrega</td></tr>`}</tbody></table></div>
+${isTAT?`<div style="text-align:right;margin-top:12px;font-size:16px;font-weight:800;color:var(--accent)">Subtotal: ${fmt(sub)}</div>`:""}
 <div class="fa"><button class="btn bs" onclick="pedTab=1;drawPedInline()">← Pedido</button><button class="btn bp" onclick="if(pedLineas.length){pedTab=3;drawPedInline()}else{showT('Agrega productos','error')}">Siguiente → Finalizar</button></div></div>`;
 }else{const bruto=pedLineas.reduce((s,l)=>s+l.valor*l.qty,0);const desc=pedLineas.reduce((s,l)=>s+(l.desc||0),0);const total=bruto-desc;
 ct=`<div class="tab-body"><div style="background:#e8f5e9;padding:14px 18px;border-radius:8px;margin-bottom:20px;font-weight:700;font-size:15px;color:#2e7d32">Resumen${isVD?" — 🚚 Venta directa":""}:</div>
-<div style="padding:0 8px"><div class="resumen-row"><span>Valor Sin Descuento:</span><span>${fmtN(bruto)}</span></div>
-<div class="resumen-row discount"><span>Descuento:</span><span>${fmtN(desc)}</span></div>
-<div class="resumen-row"><span>SubTotal:</span><span>${fmtN(total)}</span></div>
-<div class="resumen-row total"><span>Total:</span><span>${fmt(total)}</span></div></div>
+<div style="padding:0 8px">${isTAT?`<div class="resumen-row"><span>Valor Sin Descuento:</span><span>${fmtN(bruto)}</span></div><div class="resumen-row discount"><span>Descuento:</span><span>${fmtN(desc)}</span></div><div class="resumen-row"><span>SubTotal:</span><span>${fmtN(total)}</span></div><div class="resumen-row total"><span>Total:</span><span>${fmt(total)}</span></div>`:pedLineas.map(l=>`<div class="resumen-row"><span><strong>${l.codigo}</strong> — ${l.nombre}</span><span>${l.qty} ${l.unidad}</span></div>`).join("")+`<div style="background:#fff3e0;padding:10px 14px;border-radius:6px;margin-top:12px;font-size:12px;color:#e65100">Precios aplicados por Xirux según lista del cliente</div>`}</div>
 <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px"><button class="btn bs" onclick="pedTab=2;drawPedInline()">← Detalle</button><button class="btn-enviar" id="pd-env" onclick="envPed()">✓ Enviar pedido</button></div></div>`}
 $("ped-area").innerHTML=`<h2 style="margin-bottom:16px">${isVD?"🚚 Venta directa":"🛒 Pedido"}</h2>${th}${ct}`}
 
-function goTab2(){const cl=_pedData.cl||(_ssPedCl?_ssPedCl.getValue():"");if(!cl){showT("Selecciona cliente","error");return}_pedData.cl=cl;_pedData.suc=$("pd-suc")?.value||null;_pedData.cp=clientes.find(c=>c.id===cl)?.xirux_condpago||"1000";_pedData.fe=$("pd-fe")?.value||today();_pedData.obs=$("pd-obs")?.value||"";pedTab=2;drawPedInline()}
+function goTab2(){const cl=_pedData.cl||(_ssPedCl?_ssPedCl.getValue():"");if(!cl){showT("Selecciona cliente","error");return}const opVal=$("pd-op")?.value||"";const needsOp=!TAT_TEAM.includes(U.usuario)&&U.rol!=="admin";if(needsOp&&!opVal){showT("Selecciona la planta (Galán o BLE)","error");return}_pedData.cl=cl;_pedData.suc=$("pd-suc")?.value||null;_pedData.cp=clientes.find(c=>c.id===cl)?.xirux_condpago||"1000";_pedData.op=opVal||"2130";_pedData.fe=$("pd-fe")?.value||today();_pedData.obs=$("pd-obs")?.value||"";pedTab=2;drawPedInline()}
 async function ldSuc(){const cid=_pedData.cl||(_ssPedCl?_ssPedCl.getValue():"");const sel=$("pd-suc");if(!sel)return;sel.innerHTML='<option value="">Sede principal</option>';if(!cid)return;try{const s=await api("crm_sucursales","GET",null,"?cliente_id=eq."+cid+"&activo=eq.true&order=codigo_sucursal");(s||[]).forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=x.codigo_sucursal+" - "+x.nombre+(x.direccion?" - "+x.direccion:"");sel.appendChild(o)})}catch(e){}}
-function sP(q){const r=$("ps-r");if(!q){r.classList.remove("show");return}const ql=q.toLowerCase();const f=productos.filter(p=>p.nombre.toLowerCase().includes(ql)||p.codigo.includes(q));r.innerHTML=f.length?f.slice(0,10).map(p=>`<div onclick="aLn('${p.id}')"><strong>${p.codigo}</strong> — ${p.nombre} — <strong>${fmt(p.valor_unitario)}</strong></div>`).join(""):'<div style="color:var(--muted)">Sin resultados</div>';r.classList.add("show")}
-function aLn(pid){const p=productos.find(x=>x.id===pid);if(!p)return;const ex=pedLineas.find(l=>l.pid===pid);if(ex){ex.qty++;ex.total=ex.qty*ex.valor-(ex.desc||0)}else pedLineas.push({pid,codigo:p.codigo,nombre:p.nombre,valor:p.valor_unitario,unidad:p.unidad_medida||"PAQUNID",qty:1,dscPct:0,desc:0,total:p.valor_unitario});if($("ps-i"))$("ps-i").value="";if($("ps-r"))$("ps-r").classList.remove("show");drawPedInline()}
+function sP(q){const r=$("ps-r");if(!q){r.classList.remove("show");return}const ql=q.toLowerCase();const showPr=TAT_TEAM.includes(U.usuario)||U.rol==="admin";const isNonTAT=!showPr;let f=productos.filter(p=>p.nombre.toLowerCase().includes(ql)||p.codigo.includes(q));if(isNonTAT)f=f.filter(p=>HORECA_PRODS.has(String(parseInt(p.codigo)||p.codigo)));r.innerHTML=f.length?f.slice(0,10).map(p=>`<div onclick="aLn('${p.id}')"><strong>${p.codigo}</strong> — ${p.nombre}${showPr?` — <strong>${fmt(p.valor_unitario)}</strong>`:""}</div>`).join(""):'<div style="color:var(--muted)">Sin resultados</div>';r.classList.add("show")}
+function aLn(pid){const p=productos.find(x=>x.id===pid);if(!p)return;const ex=pedLineas.find(l=>l.pid===pid);if(ex){ex.qty++;ex.total=ex.qty*ex.valor-(ex.desc||0)}else pedLineas.push({pid,codigo:p.codigo,nombre:p.nombre,valor:p.valor_unitario,unidad:p.unidad_medida||"",qty:1,dscPct:0,desc:0,total:p.valor_unitario});if($("ps-i"))$("ps-i").value="";if($("ps-r"))$("ps-r").classList.remove("show");drawPedInline()}
 function uLn(i,v){const q=parseInt(v)||1;pedLineas[i].qty=q;const d=pedLineas[i].dscPct||0;const b=pedLineas[i].valor*q;pedLineas[i].desc=Math.round(b*d/100);pedLineas[i].total=b-pedLineas[i].desc;drawPedInline()}
 function uDsc(i,v){const d=Math.min(100,Math.max(0,parseInt(v)||0));pedLineas[i].dscPct=d;const b=pedLineas[i].valor*pedLineas[i].qty;pedLineas[i].desc=Math.round(b*d/100);pedLineas[i].total=b-pedLineas[i].desc;drawPedInline()}
 function uPrc(i,v){const p=Math.max(0,parseFloat(v)||0);pedLineas[i].valor=p;const d=pedLineas[i].dscPct||0;const b=p*pedLineas[i].qty;pedLineas[i].desc=Math.round(b*d/100);pedLineas[i].total=b-pedLineas[i].desc;drawPedInline()}
@@ -437,13 +437,13 @@ function rLn(i){pedLineas.splice(i,1);drawPedInline()}
 async function envPed(){if(!_pedData.cl||!pedLineas.length){showT("Faltan datos","error");return}
 const clCheck=clientes.find(c=>c.id===_pedData.cl);
 const _celOk=clCheck?.celular&&clCheck.celular!=="Sin registro";const _telOk=clCheck?.telefono&&clCheck.telefono!=="Sin registro";const _emaOk=clCheck?.correo_electronico&&clCheck.correo_electronico.includes("@");
-const _clienteNuevo=(clCheck?.fecha_ingreso||"")>="2026-06-10";
+const _clienteNuevo=(clCheck?.fecha_ingreso||"")>="2026-06-10"&&!clCheck?.xirux_sync;
 const _perfilOk=!_clienteNuevo||(clCheck?.clasificacion_a&&clCheck?.lista_precio_id&&_celOk&&_telOk&&_emaOk);
 if(!_perfilOk){showT("⚠ Completa el perfil del cliente antes de hacer pedidos (clasificación A, lista de precios, email, teléfono y celular)","error");await loadCl();renderClForm(clCheck);return}
 const bruto=pedLineas.reduce((s,l)=>s+l.valor*l.qty,0);const desc=pedLineas.reduce((s,l)=>s+(l.desc||0),0);const total=bruto-desc;
 const isVD=_pedData.tipo==="vd";
 const vid=U.vendedor_id||(clientes.find(c=>c.id===_pedData.cl)?.vendedor_id);
-const cab={cliente_id:_pedData.cl,sucursal_id:_pedData.suc||null,vendedor_id:vid,fecha:today(),fecha_entrega:_pedData.fe||today(),condicion_pago:_pedData.cp||"CONTADO",observaciones:(_pedData.obs||"")+(isVD?" [VENTA DIRECTA]":""),subtotal:bruto,descuento:desc,total:total,estado:isVD?"Venta directa":"Pendiente",created_by:U.usuario};
+const cab={cliente_id:_pedData.cl,sucursal_id:_pedData.suc||null,vendedor_id:vid,fecha:today(),fecha_entrega:_pedData.fe||today(),condicion_pago:_pedData.cp||"CONTADO",operacion:_pedData.op||"2130",observaciones:(_pedData.obs||"")+(isVD?" [VENTA DIRECTA]":""),subtotal:bruto,descuento:desc,total:total,estado:isVD?"Venta directa":"Pendiente",created_by:U.usuario};
 const btn=$("pd-env");btn.disabled=true;btn.textContent="Enviando...";
 try{const res=await api("crm_pedidos","POST",cab);if(res&&res[0]){const pid=res[0].id;
 for(const l of pedLineas){await api("crm_pedido_detalle","POST",{pedido_id:pid,producto_id:l.pid,cantidad:l.qty,valor_unitario:l.valor,descuento_pct:l.dscPct||0,valor_descuento:l.desc||0,total:l.total})}
@@ -665,19 +665,21 @@ async function enviarXiruxPed(pid){
   if(!vendedor){showT("Vendedor sin NIT configurado","error");if(btn){btn.disabled=false;btn.textContent="⬆ Enviar a Xirux";}return;}
   const body={
     NroDocumento:"CRM-"+ped.numero_pedido,
-    Operacion:"2130",
+    Operacion:ped.operacion||"2130",
     Fecha:ped.fecha,
     FechaEntrega:ped.fecha_entrega||ped.fecha,
     Tercero:tercero,
     Vendedor:vendedor,
     PuntoVenta:ped.crm_sucursales?.codigo_sucursal||"1",
-    Detalle:det.map((d,i)=>{const it={NumItem:i+1,Producto:d.crm_productos?.codigo||"",Cantidad:d.cantidad,Valor:d.valor_unitario};if(d.descuento_pct)it.PorDesc=d.descuento_pct;return it;})
+    Detalle:det.map((d,i)=>{const isTAT=U.rol==="admin"||TAT_TEAM.includes(U.usuario);const it={NumItem:i+1,Producto:d.crm_productos?.codigo||"",Cantidad:d.cantidad,Valor:isTAT?d.valor_unitario:0};if(d.descuento_pct)it.PorDesc=d.descuento_pct;return it;})
   };
   if(ped.observaciones)body.Observacion=ped.observaciones;
   try{
     const res=await xiruxProxy("/api/Ventas/Pedido",body);
+    console.log("XIRUX PEDIDO RESP:",JSON.stringify(res));
     if(res.Valido===true){
       await api("crm_pedidos","PATCH",{estado:"Enviado a ERP"},"?id=eq."+pid);
+      try{const qr=await xiruxProxy("/api/Consultas/ConsultaDocumentos",{NroDocumento:"CRM-"+ped.numero_pedido},"POST");console.log("XIRUX CONSULTA DOC:",JSON.stringify(qr));const xNum=(qr?.Valido&&qr?.Data?.[0]?.Detalle)?qr.Data[0].Detalle:("CRM-"+ped.numero_pedido);await api("crm_pedidos","PATCH",{xirux_numero:xNum},"?id=eq."+pid);}catch(e){console.log("XIRUX CONSULTA ERR:",e.message);await api("crm_pedidos","PATCH",{xirux_numero:"CRM-"+ped.numero_pedido},"?id=eq."+pid);}
       await loadPed();
       showT("Pedido #"+ped.numero_pedido+" enviado a Xirux ERP ✓");
       viewPedDetail(pid);
@@ -717,8 +719,10 @@ async function viewPedDetail(pid){const p=pedidos.find(x=>x.id===pid);if(!p)retu
 const det=await api("crm_pedido_detalle","GET",null,"?pedido_id=eq."+pid+"&select=*,crm_productos(codigo,nombre,unidad_medida)")||[];
 const isVD=p.estado==="Venta directa";
 const locked=p.estado==="Enviado a ERP";
-const lockMsg=locked?`<div style="background:#e8eaf6;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;color:#5c6bc0;font-weight:600">🔒 Pedido enviado a ERP — No se puede editar</div>`:"";
-const canPrEdt=CAN_PR.includes(U.usuario);const rows=det.map(d=>`<tr><td style="font-weight:600">${d.crm_productos?.codigo||""}</td><td>${d.crm_productos?.nombre||""}</td><td style="color:var(--muted)">${d.crm_productos?.unidad_medida||"PAQUNID"}</td><td>${locked?`<span style="font-weight:600">${d.cantidad}</span>`:`<input id="edt-q-${d.id}" type="number" min="1" value="${d.cantidad}" style="width:60px;padding:5px;text-align:center;border:1px solid var(--border);border-radius:4px">`}</td><td style="text-align:right">${(!locked&&canPrEdt)?`<input id="edt-p-${d.id}" type="number" min="0" value="${d.valor_unitario}" style="width:85px;padding:5px;text-align:right;border:1px solid var(--border);border-radius:4px">`:`${fmtN(d.valor_unitario)}`}</td><td>${locked?`<span>${d.descuento_pct||0}%</span>`:`<input id="edt-d-${d.id}" type="number" min="0" max="100" value="${d.descuento_pct||0}" style="width:55px;padding:5px;text-align:center;border:1px solid var(--border);border-radius:4px">`}</td><td style="text-align:right;font-weight:700">${fmtN(d.total)}</td><td>${locked?"":`<button onclick="delDetLine('${pid}','${d.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>`}</td></tr>`).join("");
+const needsXCheck=locked&&(!p.xirux_numero||p.xirux_numero.startsWith("CRM-"));
+const xChip=p.xirux_numero?`<span id="xn-chip" style="margin-left:12px;font-size:12px;background:#fff;padding:2px 8px;border-radius:4px;border:1px solid #9fa8da;font-weight:500">📋 ${p.xirux_numero}</span>`:(needsXCheck?`<span id="xn-chip" style="margin-left:8px;font-size:11px;color:#9fa8da;font-weight:400">🔄 consultando Xirux...</span>`:"");
+const lockMsg=locked?`<div style="background:#e8eaf6;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;color:#5c6bc0;font-weight:600">🔒 Pedido enviado a ERP — No se puede editar${xChip}</div>`:"";
+const canPrEdt=CAN_PR.includes(U.usuario);const isTAT=TAT_TEAM.includes(U.usuario)||U.rol==="admin";const rows=det.map(d=>`<tr><td style="font-weight:600">${d.crm_productos?.codigo||""}</td><td>${d.crm_productos?.nombre||""}</td><td style="color:var(--muted)">${d.crm_productos?.unidad_medida||""}</td><td>${locked?`<span style="font-weight:600">${d.cantidad}</span>`:`<input id="edt-q-${d.id}" type="number" min="1" value="${d.cantidad}" style="width:60px;padding:5px;text-align:center;border:1px solid var(--border);border-radius:4px">`}</td>${isTAT?`<td style="text-align:right">${(!locked&&canPrEdt)?`<input id="edt-p-${d.id}" type="number" min="0" value="${d.valor_unitario}" style="width:85px;padding:5px;text-align:right;border:1px solid var(--border);border-radius:4px">`:`${fmtN(d.valor_unitario)}`}</td><td>${locked?`<span>${d.descuento_pct||0}%</span>`:`<input id="edt-d-${d.id}" type="number" min="0" max="100" value="${d.descuento_pct||0}" style="width:55px;padding:5px;text-align:center;border:1px solid var(--border);border-radius:4px">`}</td><td style="text-align:right;font-weight:700">${fmtN(d.total)}</td>`:""}<td>${locked?"":`<button onclick="delDetLine('${pid}','${d.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>`}</td></tr>`).join("");
 $("mc").innerHTML=`<div style="margin-bottom:16px"><button class="btn bs bsm" onclick="showView('pedidos')">← Volver</button><h2 style="margin-top:8px">Pedido #${p.numero_pedido} ${isVD?'<span class="badge bvd">Venta directa</span>':""}</h2></div>
 ${lockMsg}
 <div class="fc" style="margin-bottom:16px"><div class="grid g3">
@@ -727,12 +731,14 @@ ${lockMsg}
 <div><div style="font-size:10px;color:var(--muted)">FECHA ENTREGA</div>${locked?`<div style="font-weight:600">${p.fecha_entrega||""}</div>`:`<input id="edt-fent" type="date" value="${p.fecha_entrega||""}" style="padding:5px;border:1px solid var(--border);border-radius:4px">`}</div></div>
 <div style="margin-top:8px"><span class="badge ${p.estado==="Pendiente"?"by":p.estado==="Venta directa"?"bvd":"bb"}">${p.estado}</span></div></div>
 ${locked?"":`<div style="margin-bottom:12px"><div class="st">Agregar producto</div><div class="psr"><input id="edt-ps" placeholder="🔍 Buscar..." oninput="sP2(this.value,'${pid}')" autocomplete="off" style="font-size:14px;padding:10px 14px"><div class="psr-r" id="edt-psr"></div></div></div>`}
-<div class="tw"><table class="det-table"><thead><tr><th>Cód</th><th>Producto</th><th>Uni</th><th>Cant</th><th>Vr.Unit</th><th>Desc%</th><th>Total</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-<div style="text-align:right;margin-top:12px;font-size:18px;font-weight:800">Total: ${fmt(p.total)}</div>
+<div class="tw"><table class="det-table"><thead><tr><th>Cód</th><th>Producto</th><th>Uni</th><th>Cant</th>${isTAT?`<th>Vr.Unit</th><th>Desc%</th><th>Total</th>`:""}<th></th></tr></thead><tbody>${rows}</tbody></table></div>
+${isTAT?`<div style="text-align:right;margin-top:12px;font-size:18px;font-weight:800">Total: ${fmt(p.total)}</div>`:""}
 <div class="fa"><button class="btn bs" onclick="printPedido('${pid}')">🖨️ Imprimir pedido</button>${locked?`<span style="font-size:13px;font-weight:700;color:#5c6bc0;padding:0 8px">✓ Enviado a ERP</span>`:`<button class="btn" id="xirux-btn" style="background:#5c6bc0;color:#fff" onclick="enviarXiruxPed('${pid}')">⬆ Enviar a Xirux</button><button class="btn bp" onclick="saveEdtPed('${pid}')">Guardar cambios</button>`}</div>`;
-window._edtDet=det;window._edtPid=pid}
+window._edtDet=det;window._edtPid=pid;
+if(needsXCheck){setTimeout(async()=>{try{const qr=await xiruxProxy("/api/Consultas/ConsultaDocumentos",{NroDocumento:"CRM-"+p.numero_pedido},"POST");const chip=document.getElementById("xn-chip");if(qr?.Valido&&qr?.Data?.[0]?.Detalle){const num=qr.Data[0].Detalle;await api("crm_pedidos","PATCH",{xirux_numero:num},"?id=eq."+pid);if(chip)chip.outerHTML=`<span style="margin-left:12px;font-size:12px;background:#fff;padding:2px 8px;border-radius:4px;border:1px solid #9fa8da;font-weight:500">📋 ${num}</span>`;}else{if(chip&&!p.xirux_numero)chip.remove();}}catch(e){const chip=document.getElementById("xn-chip");if(chip&&!p.xirux_numero)chip.remove();}},800);}
+}
 
-function sP2(q,pid){const r=$("edt-psr");if(!q){r.classList.remove("show");return}const ql=q.toLowerCase();const f=productos.filter(p=>p.nombre.toLowerCase().includes(ql)||p.codigo.includes(q));r.innerHTML=f.length?f.slice(0,10).map(p=>`<div onclick="addDetLine('${pid}','${p.id}')"><strong>${p.codigo}</strong> — ${p.nombre} — <strong>${fmt(p.valor_unitario)}</strong></div>`).join(""):'<div style="color:var(--muted)">Sin resultados</div>';r.classList.add("show")}
+function sP2(q,pid){const r=$("edt-psr");if(!q){r.classList.remove("show");return}const ql=q.toLowerCase();const showPr=TAT_TEAM.includes(U.usuario)||U.rol==="admin";let f=productos.filter(p=>p.nombre.toLowerCase().includes(ql)||p.codigo.includes(q));if(!showPr)f=f.filter(p=>HORECA_PRODS.has(String(parseInt(p.codigo)||p.codigo)));r.innerHTML=f.length?f.slice(0,10).map(p=>`<div onclick="addDetLine('${pid}','${p.id}')"><strong>${p.codigo}</strong> — ${p.nombre}${showPr?` — <strong>${fmt(p.valor_unitario)}</strong>`:""}</div>`).join(""):'<div style="color:var(--muted)">Sin resultados</div>';r.classList.add("show")}
 async function addDetLine(pid,prodId){const pp=pedidos.find(x=>x.id===pid);if(pp&&pp.estado==="Enviado a ERP"){showT("Pedido enviado a ERP, no editable","error");return}const p=productos.find(x=>x.id===prodId);if(!p)return;try{await api("crm_pedido_detalle","POST",{pedido_id:pid,producto_id:prodId,cantidad:1,valor_unitario:p.valor_unitario,descuento_pct:0,valor_descuento:0,total:p.valor_unitario});const det=await api("crm_pedido_detalle","GET",null,"?pedido_id=eq."+pid)||[];const nT=det.reduce((s,d)=>s+(d.total||0),0);await api("crm_pedidos","PATCH",{subtotal:nT,total:nT},"?id=eq."+pid);showT("Agregado");await loadPed();viewPedDetail(pid)}catch(e){showT(e.message,"error")}}
 async function delDetLine(pid,detId){const pp=pedidos.find(x=>x.id===pid);if(pp&&pp.estado==="Enviado a ERP"){showT("Pedido enviado a ERP, no editable","error");return}try{await api("crm_pedido_detalle","DELETE",null,"?id=eq."+detId);const det=await api("crm_pedido_detalle","GET",null,"?pedido_id=eq."+pid)||[];const nT=det.reduce((s,d)=>s+(d.total||0),0);await api("crm_pedidos","PATCH",{subtotal:nT,total:nT},"?id=eq."+pid);showT("Eliminado");await loadPed();viewPedDetail(pid)}catch(e){showT(e.message,"error")}}
 async function saveEdtPed(pid){const pp=pedidos.find(x=>x.id===pid);if(pp&&pp.estado==="Enviado a ERP"){showT("Pedido enviado a ERP, no editable","error");return}const det=window._edtDet;if(!det)return;let nB=0;let nD=0;for(const d of det){const q=parseInt($("edt-q-"+d.id)?.value)||1;const dp=Math.min(100,parseInt($("edt-d-"+d.id)?.value)||0);const vp=parseFloat($("edt-p-"+d.id)?.value)||d.valor_unitario;const b=q*vp;const dc=Math.round(b*dp/100);const t=b-dc;nB+=b;nD+=dc;await api("crm_pedido_detalle","PATCH",{cantidad:q,valor_unitario:vp,descuento_pct:dp,valor_descuento:dc,total:t},"?id=eq."+d.id)}const f=$("edt-fecha")?.value;const fe=$("edt-fent")?.value;await api("crm_pedidos","PATCH",{subtotal:nB,descuento:nD,total:nB-nD,fecha:f||undefined,fecha_entrega:fe||undefined},"?id=eq."+pid);showT("Actualizado");await loadPed();showView("pedidos")}
@@ -1868,6 +1874,90 @@ async function saveAct(eid){
     if(retCl){const cl=clientes.find(c=>c.id===retCl);if(cl)renderClForm(cl);else await renderAgenda();}
     else await renderAgenda();
   }catch(e){showT(e.message,"error")}
+}
+
+// ═══ RUTAS ═══
+let _rutasCls=[],_rutasActs=[],_rutasCiudad="",_rutasQ="";
+async function renderRutas(){
+  $("mc").innerHTML=`<div class="topbar"><h2>🚚 Rutas</h2><button class="btn bs bsm" onclick="renderRutas()">🔄</button></div><div style="text-align:center;padding:40px;color:var(--muted)">Cargando clientes...</div>`;
+  try{
+    const [cls,acts]=await Promise.all([
+      api("crm_clientes","GET",null,"?order=ciudad,nombre&select=*,crm_vendedores(nombre),crm_tipologias!crm_clientes_tipologia_id_fkey(nombre)"+vF()),
+      api("crm_actividades","GET",null,"?estado=eq.pendiente&order=fecha,hora_inicio&select=id,cliente_id,tipo,fecha,hora_inicio,titulo"+vF())
+    ]);
+    _rutasCls=cls||[];_rutasActs=acts||[];
+    const ciudades=[...new Set(_rutasCls.map(c=>c.ciudad||"Sin ciudad").filter(Boolean))].sort();
+    _rutasCiudad="";_rutasQ="";
+    const cityOpts=ciudades.map(c=>`<option value="${c}">${c}</option>`).join("");
+    $("mc").innerHTML=`
+<div class="topbar"><h2>🚚 Rutas</h2>
+  <div style="display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap">
+    <input id="ruta-q" placeholder="🔍 Cliente..." style="width:160px" oninput="_rutasQ=this.value;renderRutasCards()">
+    <select id="ruta-city" onchange="_rutasCiudad=this.value;renderRutasCards()" style="font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff">
+      <option value="">Todas las ciudades</option>${cityOpts}
+    </select>
+    <button class="btn bs bsm" onclick="renderRutas()">🔄</button>
+  </div>
+</div>
+<div style="margin-bottom:8px;font-size:12px;color:var(--muted)">${_rutasCls.length} cliente${_rutasCls.length!==1?"s":""} · ${_rutasActs.length} actividad${_rutasActs.length!==1?"es":""} pendiente${_rutasActs.length!==1?"s":""}</div>
+<div id="rutas-content"></div>`;
+    renderRutasCards();
+  }catch(e){showT(e.message,"error")}
+}
+function renderRutasCards(){
+  const q=(_rutasQ||"").toLowerCase();
+  const city=_rutasCiudad;
+  let filtered=_rutasCls.filter(c=>{
+    if(city&&(c.ciudad||"Sin ciudad")!==city)return false;
+    if(q&&!(c.nombre||"").toLowerCase().includes(q)&&!(c.codigo||"").toLowerCase().includes(q)&&!(c.direccion||"").toLowerCase().includes(q))return false;
+    return true;
+  });
+  const actsMap={};
+  _rutasActs.forEach(a=>{if(!actsMap[a.cliente_id])actsMap[a.cliente_id]=[];actsMap[a.cliente_id].push(a)});
+  const grouped={};
+  filtered.forEach(c=>{const cd=c.ciudad||"Sin ciudad";if(!grouped[cd])grouped[cd]=[];grouped[cd].push(c)});
+  const container=$("rutas-content");if(!container)return;
+  if(!filtered.length){container.innerHTML=`<div class="empty" style="padding:40px 0">Sin clientes para esta búsqueda</div>`;return}
+  const totalActs=filtered.reduce((s,c)=>(s+(actsMap[c.id]?.length||0)),0);
+  let html=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:var(--accent)">${filtered.length}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Clientes</div></div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#f57c00">${totalActs}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Actividades pendientes</div></div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;text-align:center"><div style="font-size:22px;font-weight:700;color:#388e3c">${Object.keys(grouped).length}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Ciudades</div></div>
+  </div>`;
+  Object.keys(grouped).sort().forEach(cd=>{
+    const cls=grouped[cd];
+    html+=`<div style="margin-bottom:20px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:8px;padding:6px 0;border-bottom:2px solid var(--border)">📍 ${cd} <span style="font-weight:400;font-size:10px">(${cls.length})</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">`;
+    cls.forEach(c=>{
+      const pendActs=actsMap[c.id]||[];
+      const nextAct=pendActs[0];
+      const hasPend=pendActs.length>0;
+      const mapQ=encodeURIComponent((c.direccion||c.nombre||"")+(c.ciudad?", "+c.ciudad:""));
+      const actChip=hasPend?`<span style="background:#fff3e0;color:#e65100;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600">📅 ${pendActs.length} pendiente${pendActs.length>1?"s":""}</span>`:`<span style="background:#e8f5e9;color:#388e3c;font-size:10px;padding:2px 7px;border-radius:10px">✓ Al día</span>`;
+      const nextActLine=nextAct?`<div style="font-size:11px;color:#f57c00;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">↳ ${ACT_TIPOS.find(t=>t.v===nextAct.tipo)?.ic||"📋"} ${nextAct.fecha}${nextAct.hora_inicio?" "+nextAct.hora_inicio.slice(0,5):""} — ${nextAct.titulo||nextAct.tipo}</div>`:"";
+      const tipNom=c.crm_tipologias?.nombre||"";
+      const vendNom=c.crm_vendedores?.nombre||"";
+      html+=`<div style="background:var(--bg2);border:1px solid ${hasPend?"#ffcc80":"var(--border)"};border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 3px 12px rgba(0,0,0,.1)'" onmouseleave="this.style.boxShadow=''">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px">
+          <div style="font-weight:700;font-size:14px;line-height:1.3;flex:1" onclick="eCl('${c.id}')" title="Ver cliente">${c.nombre}</div>
+          ${actChip}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${c.codigo||"—"}${tipNom?" · "+tipNom:""}${vendNom&&U.rol!=="vendedor"?" · "+vendNom:""}</div>
+        ${c.direccion?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">🏠 ${c.direccion}</div>`:""}
+        ${c.telefono||c.celular?`<div style="font-size:12px;color:var(--muted)">📞 ${c.telefono||c.celular}</div>`:""}
+        ${nextActLine}
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn bp bsm" onclick="event.stopPropagation();eCl('${c.id}')" style="font-size:11px">Ver</button>
+          <button class="btn bs bsm" onclick="event.stopPropagation();renderVisForm();setTimeout(()=>{const s=$('vf-cl');if(s){s.value='${c.id}';s.dispatchEvent(new Event('change'))}},200)" style="font-size:11px">📍 Visita</button>
+          <button class="btn bs bsm" onclick="event.stopPropagation();renderActForm(null,null,'${c.id}','')" style="font-size:11px">📅 Actividad</button>
+          ${c.direccion?`<a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" class="btn bs bsm" style="font-size:11px;text-decoration:none">🗺️ Maps</a>`:""}
+        </div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  container.innerHTML=html;
 }
 </script>
 </body>
