@@ -1932,11 +1932,12 @@ async function renderRutas(){
   try{
     const misCls=await api("crm_clientes","GET",null,"?select=nombre"+vF());
     _rutaClNms=new Set((misCls||[]).map(c=>normNom(c.nombre)));
+    const d90=new Date();d90.setDate(d90.getDate()-90);const desde90=d90.toISOString().split('T')[0];
     const [facturas,clientes,repartidores,entregas,novedades,notas]=await Promise.all([
-      api("facturas","GET",null,"?select=id,consecutivo,fecha,estado,kg_facturados,sucursal,cliente_id,repartidor_id&order=consecutivo"),
+      api("facturas","GET",null,"?select=id,consecutivo,fecha,estado,kg_facturados,sucursal,cliente_id,repartidor_id&fecha=gte."+desde90+"&order=fecha.desc&limit=2000"),
       api("clientes","GET",null,"?select=id,nombre"),
       api("repartidores","GET",null,"?select=id,nombre"),
-      api("entregas","GET",null,"?select=id,factura_id,kg_recibidos,metodo_pago,monto_efectivo,monto_transferencia,observaciones,registrado_en,foto_url&order=registrado_en.desc&limit=5000"),
+      api("entregas","GET",null,"?select=id,factura_id,kg_recibidos,metodo_pago,monto_efectivo,monto_transferencia,observaciones,registrado_en,foto_url&registrado_en=gte."+desde90+"&order=registrado_en.desc&limit=2000"),
       api("novedades","GET",null,"?select=id,entrega_id,tipo,diferencia,estado"),
       api("notas","GET",null,"?select=id,novedad_id,tipo_nota,numero_nota,monto,pdf_url"),
     ]);
