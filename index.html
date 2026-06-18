@@ -696,24 +696,29 @@ async function enviarXiruxPed(pid){
 
 // ═══ PEDIDOS LIST ═══
 async function renderPedList(){await loadPed();const vv=vV();const vO=U.rol==="vendedor"?"":vv.map(v=>`<option value="${v.id}">${v.nombre}</option>`).join("");
-$("mc").innerHTML=`<div class="topbar"><h2>Pedidos</h2><button class="btn bs bsm" onclick="filterPed()">🔄</button></div>
+$("mc").innerHTML=`<div class="topbar"><h2>Pedidos</h2><div style="display:flex;gap:6px;margin-left:auto"><button class="btn bs bsm" onclick="filterPed()">🔄</button><button class="btn bs bsm" onclick="exportPedExcel()" title="Descargar Excel">↓ Excel</button></div></div>
+<div style="margin-bottom:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="fp-campo" value="fecha" checked onchange="filterPed()"> Fecha pedido</label>
+  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="fp-campo" value="fecha_entrega" onchange="filterPed()"> Fecha entrega</label>
+</div>
 <div class="grid ${U.rol!=="vendedor"?"g3":"g2"}" style="margin-bottom:14px">
 ${U.rol!=="vendedor"?`<div class="field"><label>Vendedor</label><select id="fp-ven" onchange="filterPed()"><option value="">Todos</option>${vO}</select></div>`:""}
 <div class="field"><label>Desde</label><input type="date" id="fp-d" value="${today()}" onchange="filterPed()"></div>
 <div class="field"><label>Hasta</label><input type="date" id="fp-h" value="${today()}" onchange="filterPed()"></div></div>
-<div class="tw"><table><thead><tr><th>#</th><th>Fecha</th><th>Cliente</th>${U.rol!=="vendedor"?"<th>Vendedor</th>":""}<th>Total</th><th>Estado</th><th></th><th></th></tr></thead><tbody id="ped-tb"></tbody></table></div>`;filterPed()}
+<div class="tw"><table><thead><tr><th>#</th><th>Fecha</th><th>F. Entrega</th><th>Cliente</th>${U.rol!=="vendedor"?"<th>Vendedor</th>":""}<th>Total</th><th>Estado</th><th></th><th></th></tr></thead><tbody id="ped-tb"></tbody></table></div>`;filterPed()}
 
-async function filterPed(){if(!$("ped-tb"))return;const d=$("fp-d")?.value||today();const h=$("fp-h")?.value||today();const ven=$("fp-ven")?.value||"";let extra="&fecha=gte."+d+"&fecha=lte."+h;if(ven)extra+="&vendedor_id=eq."+ven;await loadPed(extra);
+async function filterPed(){if(!$("ped-tb"))return;const d=$("fp-d")?.value||today();const h=$("fp-h")?.value||today();const ven=$("fp-ven")?.value||"";const campo=document.querySelector('input[name="fp-campo"]:checked')?.value||"fecha";let extra="&"+campo+"=gte."+d+"&"+campo+"=lte."+h;if(ven)extra+="&vendedor_id=eq."+ven;await loadPed(extra);
 $("ped-tb").innerHTML=pedidos.length?pedidos.map(p=>`<tr>
 <td onclick="viewPedDetail('${p.id}')">${p.numero_pedido}</td>
-<td onclick="viewPedDetail('${p.id}')" style="color:var(--muted)">${p.fecha}</td>
+<td onclick="viewPedDetail('${p.id}')" style="color:var(--muted)">${p.fecha||""}</td>
+<td onclick="viewPedDetail('${p.id}')" style="color:var(--muted)">${p.fecha_entrega||"—"}</td>
 <td onclick="viewPedDetail('${p.id}')" style="font-weight:600">${p.crm_clientes?.nombre||""}</td>
 ${U.rol!=="vendedor"?`<td onclick="viewPedDetail('${p.id}')" style="color:var(--muted)">${p.crm_vendedores?.nombre||""}</td>`:""}
 <td onclick="viewPedDetail('${p.id}')" style="font-weight:700">${fmt(p.total)}</td>
 <td onclick="viewPedDetail('${p.id}')"><span class="badge ${p.estado==="Pendiente"?"by":p.estado==="Enviado a ERP"?"bb":p.estado==="Venta directa"?"bvd":"bg"}">${p.estado}</span></td>
 <td><button class="btn bs bsm" onclick="event.stopPropagation();printPedido('${p.id}')" title="Imprimir">🖨️</button></td>
 <td onclick="viewPedDetail('${p.id}')" style="color:var(--accent)">→</td>
-</tr>`).join(""):'<tr><td colspan="8" class="empty">Sin pedidos</td></tr>'}
+</tr>`).join(""):'<tr><td colspan="9" class="empty">Sin pedidos</td></tr>'}
 
 async function viewPedDetail(pid){const p=pedidos.find(x=>x.id===pid);if(!p)return;
 const det=await api("crm_pedido_detalle","GET",null,"?pedido_id=eq."+pid+"&select=*,crm_productos(codigo,nombre,unidad_medida)")||[];
@@ -742,6 +747,41 @@ function sP2(q,pid){const r=$("edt-psr");if(!q){r.classList.remove("show");retur
 async function addDetLine(pid,prodId){const pp=pedidos.find(x=>x.id===pid);if(pp&&pp.estado==="Enviado a ERP"){showT("Pedido enviado a ERP, no editable","error");return}const p=productos.find(x=>x.id===prodId);if(!p)return;try{await api("crm_pedido_detalle","POST",{pedido_id:pid,producto_id:prodId,cantidad:1,valor_unitario:p.valor_unitario,descuento_pct:0,valor_descuento:0,total:p.valor_unitario});const det=await api("crm_pedido_detalle","GET",null,"?pedido_id=eq."+pid)||[];const nT=det.reduce((s,d)=>s+(d.total||0),0);await api("crm_pedidos","PATCH",{subtotal:nT,total:nT},"?id=eq."+pid);showT("Agregado");await loadPed();viewPedDetail(pid)}catch(e){showT(e.message,"error")}}
 async function delDetLine(pid,detId){const pp=pedidos.find(x=>x.id===pid);if(pp&&pp.estado==="Enviado a ERP"){showT("Pedido enviado a ERP, no editable","error");return}try{await api("crm_pedido_detalle","DELETE",null,"?id=eq."+detId);const det=await api("crm_pedido_detalle","GET",null,"?pedido_id=eq."+pid)||[];const nT=det.reduce((s,d)=>s+(d.total||0),0);await api("crm_pedidos","PATCH",{subtotal:nT,total:nT},"?id=eq."+pid);showT("Eliminado");await loadPed();viewPedDetail(pid)}catch(e){showT(e.message,"error")}}
 async function saveEdtPed(pid){const pp=pedidos.find(x=>x.id===pid);if(pp&&pp.estado==="Enviado a ERP"){showT("Pedido enviado a ERP, no editable","error");return}const det=window._edtDet;if(!det)return;let nB=0;let nD=0;for(const d of det){const q=parseInt($("edt-q-"+d.id)?.value)||1;const dp=Math.min(100,parseInt($("edt-d-"+d.id)?.value)||0);const vp=parseFloat($("edt-p-"+d.id)?.value)||d.valor_unitario;const b=q*vp;const dc=Math.round(b*dp/100);const t=b-dc;nB+=b;nD+=dc;await api("crm_pedido_detalle","PATCH",{cantidad:q,valor_unitario:vp,descuento_pct:dp,valor_descuento:dc,total:t},"?id=eq."+d.id)}const f=$("edt-fecha")?.value;const fe=$("edt-fent")?.value;await api("crm_pedidos","PATCH",{subtotal:nB,descuento:nD,total:nB-nD,fecha:f||undefined,fecha_entrega:fe||undefined},"?id=eq."+pid);showT("Actualizado");await loadPed();showView("pedidos")}
+
+async function exportPedExcel(){
+  if(!pedidos.length){showT("Sin pedidos para exportar","error");return}
+  showT("Generando Excel...");
+  const ids=pedidos.map(p=>p.id);
+  let detalles=[];
+  try{
+    const chunk=200;
+    for(let i=0;i<ids.length;i+=chunk){
+      const sub=ids.slice(i,i+chunk);
+      const rows=await api("crm_pedido_detalle","GET",null,"?pedido_id=in.("+sub.join(",")+")"+"&select=*,crm_productos(codigo,nombre,unidad_medida)")||[];
+      detalles=detalles.concat(rows);
+    }
+  }catch(e){detalles=[]}
+  const detMap={};detalles.forEach(d=>{if(!detMap[d.pedido_id])detMap[d.pedido_id]=[];detMap[d.pedido_id].push(d)});
+  const campo=document.querySelector('input[name="fp-campo"]:checked')?.value||"fecha";
+  const hd=["#Pedido","Fecha pedido","Fecha entrega","Estado","Cliente","Codigo cliente","Vendedor","Dirección","Ciudad","Cod. producto","Producto","Unidad","Cantidad","Vr. unitario","Desc %","Total línea","Total pedido"];
+  const rows=[];
+  pedidos.forEach(p=>{
+    const dets=detMap[p.id]||[];
+    if(!dets.length){
+      rows.push([p.numero_pedido,p.fecha||"",p.fecha_entrega||"",p.estado,p.crm_clientes?.nombre||"",p.crm_clientes?.codigo||"",p.crm_vendedores?.nombre||"",p.crm_clientes?.direccion||"",p.crm_clientes?.ciudad||"","","","","","","",p.total||0,p.total||0]);
+    }else{
+      dets.forEach(d=>{
+        rows.push([p.numero_pedido,p.fecha||"",p.fecha_entrega||"",p.estado,p.crm_clientes?.nombre||"",p.crm_clientes?.codigo||"",p.crm_vendedores?.nombre||"",p.crm_clientes?.direccion||"",p.crm_clientes?.ciudad||"",d.crm_productos?.codigo||"",d.crm_productos?.nombre||"",d.crm_productos?.unidad_medida||"",d.cantidad||0,d.valor_unitario||0,d.descuento_pct||0,d.total||0,p.total||0]);
+      });
+    }
+  });
+  const ws=XLSX.utils.aoa_to_sheet([hd,...rows]);
+  ws['!cols']=[8,12,12,14,28,12,18,22,14,12,28,8,8,10,7,12,12].map(w=>({wch:w}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Pedidos");
+  const d=$("fp-d")?.value||today();const h=$("fp-h")?.value||today();
+  XLSX.writeFile(wb,'Pedidos_'+(campo==="fecha_entrega"?"entrega":"pedido")+'_'+d+'_'+h+'.xlsx');
+  showT("Excel descargado ✓");
+}
 
 // ═══ CLIENTES ═══
 async function renderClList(){await loadCl();const sinErpCount=clientes.filter(c=>!c.xirux_sync).length;$("mc").innerHTML=`<div class="topbar"><h2>Clientes</h2><button class="btn bp bsm" onclick="renderClForm()">+ Nuevo</button></div><div style="margin-bottom:12px;display:flex;gap:8px;align-items:center"><input placeholder="🔍 Buscar..." id="cf-s" oninput="fCl()" style="flex:1"><button id="btn-sin-erp" class="mbtn" onclick="toggleFiltERP()" title="Mostrar solo clientes sin sincronizar con ERP">Sin ERP <span style="background:#f44336;color:#fff;border-radius:10px;padding:1px 6px;font-size:10px">${sinErpCount}</span></button></div><div class="tw"><table><thead><tr><th>NIT/CC</th><th>Nombre</th><th>Ciudad</th><th>Tipología</th><th>ERP</th></tr></thead><tbody id="cl-tb"></tbody></table></div>`;fCl()}
